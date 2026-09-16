@@ -1,0 +1,99 @@
+# 提案草稿：酒馆生物信号上下文（Tavern Bio-Context, TBC）v0.1
+
+> 状态：草稿，2026-09-16。目的是让**任何**心率/穿戴设备接入脚本、**任何**预设作者、**任何**卡片作者用同一套约定协作，而不是各写各的。heartlink 是第一个实现。
+
+## 0. 一句话
+
+设备侧脚本负责把读者的生理信号整理成一个固定格式的文本块注入提示词、写进聊天变量、广播页面事件；预设和卡片只依赖这三样，不关心设备是 WHOOP 还是小米手环，也不关心连接方式是 Web Bluetooth 还是本机桥。
+
+## 1. 分层
+
+| 层 | 谁做 | 产出 | 约定 |
+|---|---|---|---|
+| 设备层 | 接入脚本 | 每秒样本 `{t, bpm, rr[]}`，可选电量/设备信息 | 标准蓝牙心率协议（0x180D）优先；私有协议自行适配，但样本形状一致 |
+| 相位层 | 接入脚本 | 页面事件 `send / stream_start / reasoning_end / reply_end / type / activity / visible / hidden / swipe` | 事件名固定；来源是酒馆核心事件与 DOM，不依赖具体卡片 |
+| 上下文层 | 接入脚本 | `<bio_context>` 文本块（本文第 2 节）；聊天变量 `bio`（第 3 节）；页面事件 `bio:*`（第 4 节） | **这一层是标准的核心** |
+| 解释层 | 世界书 / 预设 | 常驻条讲读法；模式条讲用法；思维链一行裁决 | 只消费上下文层，不读设备 |
+| 反向层（可选） | 另一个扩展 | 模型输出 → 设备动作（buttplug 等） | 只订阅 `bio:*` 与聊天变量，不与上下文层耦合 |
+
+## 2. `<bio_context>` 文本块
+
+注入方式：每次用户可见的生成前，一条 `system` 消息，聊天内深度 0，参与世界书扫描。后台生成不注入。
+
+```
+<bio_context v="0.1" mode="author|character" source="heartlink">
+sent: 20:15:22
+baseline: 73 bpm (quiet-median, n=1800; hrv 99 ms)
+history: read-peaks 78 84 92 83 | read-dur 2:03 1:40 3:10 1:57 | hrv 95 · 88 ·
+gen: 40s (ttft 8s, reasoning 8s, body 25s) | hr 82→75 [73–82]
+read: 1:57 | hr 75→78 [72–83] peak 83 @32s | rr-loss 68%
+write: 7s, 27 chars, pauses 0, edits 0 | hr 78→80 [78–80] | rr-loss 100%
+away: 20:13:17–20:15:15 idle [72–83]
+send: 80 bpm (+10%)
+series(10s from 20:10:20): 75 75 75 75 73 74 73 73 72 70 71 75 77 76
+note: observable record only; phase edges are page events; hr lags seconds; wrist motion lowers confidence
+</bio_context>
+```
+
+字段规则：
+- 每行一个字段，`key: value`，键固定为英文小写；值里的时长用 `m:ss` 或 `Ns`；区间用 `[min–max]`；缺失写 `n/a`，不省略行。
+- `mode` 只有两个值：`author`（作者反馈，剧情内无人知晓）、`character`（角色感知，允许映射到 `{{user}}` 的可观察身体线索）。
+- `history` 最多 8 轮，按时间顺序，最右是上一轮。
+- 允许扩展字段（如 `skin-temp`、`spo2`、`breath`），但必须是新行，不改已有行的语义。
+- 块内**不得**出现解释性结论（“读者很兴奋”这类），解释权属于解释层。
+
+## 3. 聊天变量 `bio`
+
+```json
+{
+  "v": "0.1",
+  "source": "heartlink",
+  "updatedAt": 1789560584206,
+  "mode": "author",
+  "baseline": 73,
+  "last": { "t": 1789560584206, "readSec": 117, "readPeak": 83, "readMean": 77, "peakAtSec": 32, "hrv": null, "writeSec": 7, "sendBpm": 80, "baseline": 73, "genSec": 40 },
+  "turns": [ "...最近 20 轮，同上结构..." ]
+}
+```
+
+用途：带 MVU 等系统的卡片读取；导出聊天时随 JSONL 一起带走，可做统计。
+
+## 4. 页面事件（主窗口 `dispatchEvent`）
+
+| 事件 | detail | 频率 |
+|---|---|---|
+| `bio:sample` | `{t, bpm, rr}` | 每个样本 |
+| `bio:inject` | `{text, mode, summary}` | 每次注入 |
+| `bio:state` | 连接/模式/基线快照 | 状态变化 |
+
+反向扩展（震动、玩具）只订阅这些事件，不直接连设备侧。
+
+## 5. 解释层最小约定
+
+- 世界书：一条常驻条说明 `<bio_context>` 的读法；两条按 `mode="author"` / `mode="character"` 触发的用法条。
+- 预设思维链（可选）：在“读输入、定剧情走向”的那一步加一行 `Reader Signal`，只产出“节奏 / 张力 / 尺度”三项调节，不写入正文。
+- 不得让模型复述数值、提到设备，除非卡片明确设定角色拥有监测能力。
+
+## 6. 通用适配声明（接入脚本必须写明）
+
+| 环境 | 直连（Web Bluetooth） | 本机桥（WebSocket） |
+|---|---|---|
+| Windows / macOS / Linux 的 Chrome、Edge | 支持 | 支持 |
+| Android Chrome、Edge | 支持 | 支持 |
+| iOS 任何浏览器、macOS Safari | 不支持 | 支持 |
+| Android WebView 类浏览器（Via 等） | 不支持（WebView 无 Web Bluetooth） | 支持 |
+| 局域网 http 地址访问酒馆 | 不支持（非安全上下文） | 支持 |
+| localhost / https | 支持 | 支持 |
+
+## 7. 与现有轮子的关系
+
+- buttplug.io / Intiface：设备**控制**协议，不做信号→提示词；反向层直接复用它。
+- SillyTavern 角色卡 v3、STScript、酒馆助手 API：本提案不改它们，只在其上约定文本块、变量名和事件名。
+- HZXXXC/sillytavern-heart-rate-hrv（2026-05）：现有的酒馆扩展，Web Bluetooth 读心率 + HRV，生成时注入一行即时状态标签。设备层相同，上下文层不同：它注入解释后的标签，本提案注入不解释的分相位记录。它是最接近的现有实现，也是最适合一起输出 `<bio_context>` 的候选。
+- 目前（2026-09-16 检索）没有找到任何“生理信号进提示词”的公开**约定**，本草稿是第一份。
+
+## 8. 待定
+
+- 命名：`bio_context` 还是沿用 `heartlink_timeline`；变量名 `bio` 还是 `heartlink`。
+- 多设备并存时的 `source` 优先级。
+- 阅读进度估计（每秒约 20 字）是否进标准字段（`read-pos`）。
