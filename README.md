@@ -41,6 +41,10 @@ Interpretation lives in a world-info book (one constant entry + two mode entries
 | Tavern served over plain http on LAN | no (not a secure context) | yes |
 | localhost / https | yes | yes |
 
+## Landscape / 现有项目普查
+
+See [docs/landscape-zh.md](docs/landscape-zh.md): every public project we could find that feeds biosignals into SillyTavern/LLM roleplay or lets the model drive devices, which ones could adopt this convention, and draft issues for the SillyTavern repo and the two closest projects.
+
 ## Full draft / 完整草稿
 
 See [docs/spec-zh.md](docs/spec-zh.md) (Chinese). English normative text to follow once v0.1 stabilises.
