@@ -47,6 +47,10 @@ Interpretation lives in a world-info book (one constant entry + two mode entries
 
 See [docs/landscape-zh.md](docs/landscape-zh.md): every public project we could find that feeds biosignals into SillyTavern/LLM roleplay or lets the model drive devices, which ones could adopt this convention, and draft issues for the SillyTavern repo and the two closest projects.
 
+## Device interface / 设备对接标准
+
+See [docs/device-interface-zh.md](docs/device-interface-zh.md) (v0.2 draft): one bus (`window.tbc`) for signal sources to `push` samples, for actuators to `registerContext` a one-line device state into the block, and for anything to subscribe to `bio:inject` / `bio:sample`; cross-process mirror over a local WebSocket; vocabulary borrowed from buttplug v4 OutputType/InputType plus `Estim` and the physiological kinds. Male-oriented hardware (The Handy, OSR/OSSM via TCode, DG-LAB Coyote and its open BLE protocol, Edge-o-Matic, restim) is covered in §8.
+
 ## Full draft / 完整草稿
 
 See [docs/spec-zh.md](docs/spec-zh.md) (Chinese). English normative text to follow once v0.1 stabilises.

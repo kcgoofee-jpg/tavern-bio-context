@@ -79,3 +79,7 @@
 ## 补遗（2026-09-17）
 
 第一版普查漏掉了 awesome-ai-companion（DasterProkio）清单里的这些项目，评价见 `st-compat-audit-2026-09-zh.md` 第 6 节：phantom-touch-bridge（本机触觉桥，可选心率输入）、always-here（Apple Watch + iOS 快捷指令推送）、Akari Pulse（vivo/BlueOS → MCP）、Toy-Relay-AI-mcp-SOSEXY（MCP + 手机 Chrome Web Bluetooth 中继）、dsh-toy（DeepSeek Harness 玩具插件，guardrails 范本）、Eventide / Tidefall（模拟生理状态引擎）。第一版里"发 issue 给官方/他人"的草稿作废，不再对外推广。
+
+## 补遗二：男性向设备与执行器生态（2026-09-17）
+
+第一版与 awesome-ai-companion 都偏女性向震动类。男性向的现成生态见 `device-interface-zh.md` §8：The Handy（REST v3 / buttplug / 浏览器蓝牙，MagicHandy 已做 LLM 聊天控制）、Kiiroo Keon、Lovense Solace/Max、OSR2/SR6/OSSM（TCode，MultiFunPlayer 中枢）、DG-LAB 郊狼（官方开源 BLE 协议 654★，open-DGLAB-controller WebSocket API，buttplug-dg-lab，coyote-socket）、DG-LAB 灵猫边缘控制传感器（开源 BLE，100 ms 气压——一个现成的非心率信号源）、Edge-o-Matic 3000（压力传感 + 输出，开源固件与插件）、restim / PiShock（电刺激）。已有的 AI 接入：Buttplug MCP 三个实现、Tactus、ButtplugLLM、LLM Roleplay Intiface、Nomi-Lovense、sayit.love、Synsual；已有的"心率 → 设备"：Heartrate-Buttplug、phantom-touch-bridge。它们缺的都是同一件事：读者状态的统一来源与设备状态回到上下文的统一格式——这就是 TBC 设备对接标准要填的位置。
