@@ -118,3 +118,9 @@ note: observable record only; phase edges are page events; hr lags seconds; wris
 - P-9 安全与隐私：除声明的本机桥地址不得发起网络请求；块内不放设备 ID / 令牌；反向层必须有时长上限与全局停止。
 - P-10 反向层契约：消费者只读 `bio:inject.detail.summary` 与 `bio:sample`，协议不定义设备控制。
 
+### v0.1.2 增量行（2026-09-17，heartlink 0.8 已实现）
+
+块内在 `send:` 之后、`series` 之前允许出现两种可选行，v0.1 读者忽略即可：
+- `<kind>(<source>[, <cadence>]): read a→b unit peak p @Ns | write a→b unit`——非心率信号（如 pressure）按同一相位切分；本轮没数据写 `n/a (no data in this turn)`，只有最近 10 秒有值写 `now v`。
+- `device: <一行设备状态>`——执行器通过 `window.tbc.registerContext(source, fn)` 登记，≤120 字符，去尖括号。
+页面内总线 `window.tbc`（`push` / `registerContext` / `unregisterContext` / `on` / `off` / `sources`）见 `device-interface-zh.md` §1–§3。
