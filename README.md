@@ -4,7 +4,7 @@
 
 **一个开放约定的提案：把读者的实时生理信号（先是心率）以统一格式送进酒馆（SillyTavern）的提示词，设备无关、预设无关、卡片无关。**
 
-Status: draft v0.1 (2026-09-16). Reference implementation: `heartlink` (WHOOP → Chrome Web Bluetooth → Tavern Helper global script), to be published separately.
+Status: draft v0.1 (2026-09-16). Reference implementation: `heartlink` v0.6 (WHOOP → Chrome Web Bluetooth → Tavern Helper global script; falls back to SillyTavern core `setExtensionPrompt` / `eventSource` when Tavern Helper APIs are absent), to be published separately.
 
 ## Why / 为什么
 
@@ -44,6 +44,11 @@ Interpretation lives in a world-info book (one constant entry + two mode entries
 ## Full draft / 完整草稿
 
 See [docs/spec-zh.md](docs/spec-zh.md) (Chinese). English normative text to follow once v0.1 stabilises.
+
+## Dependency notes / 依赖说明
+
+- Tavern Helper (JS-Slash-Runner) 3.0.0→4.9.6 (2024-09 to 2026-09, 183 versions) had few breaking changes: 3.2.3 settings format, 3.6.1 `Character`→`RawCharacter`, 4.0.0 `replaceVariables` no longer async. `injectPrompts` exists since 3.4.15 (2025-08-27); `eventOn` returns `stop` since 3.4.13. A device script should feature-detect and fall back to SillyTavern core APIs.
+- Web Bluetooth has been stable in Chromium desktop and Android Chrome since 2017; `getDevices()` / `watchAdvertisements()` remain behind flags on some builds. Not available in iOS browsers, macOS Safari, Android WebView (Via etc.), or plain-http LAN origins.
 
 ## Prior art checked / 已核对的现有轮子
 

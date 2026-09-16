@@ -89,8 +89,7 @@ note: observable record only; phase edges are page events; hr lags seconds; wris
 
 - buttplug.io / Intiface：设备**控制**协议，不做信号→提示词；反向层直接复用它。
 - SillyTavern 角色卡 v3、STScript、酒馆助手 API：本提案不改它们，只在其上约定文本块、变量名和事件名。
-- HZXXXC/sillytavern-heart-rate-hrv（2026-05）：现有的酒馆扩展，Web Bluetooth 读心率 + HRV，生成时注入一行即时状态标签。设备层相同，上下文层不同：它注入解释后的标签，本提案注入不解释的分相位记录。它是最接近的现有实现，也是最适合一起输出 `<bio_context>` 的候选。
-- 目前（2026-09-16 检索）没有找到任何“生理信号进提示词”的公开**约定**，本草稿是第一份。
+- 目前（2026-09-16 检索）没有找到任何“生理信号进提示词”的公开约定，本草稿是第一份。
 
 ## 8. 待定
 
