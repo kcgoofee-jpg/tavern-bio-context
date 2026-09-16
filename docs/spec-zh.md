@@ -62,6 +62,8 @@ note: observable record only; phase edges are page events; hr lags seconds; wris
 }
 ```
 
+`last` / `turns[]` 自 v0.1.1 提案起可带 `readPos`：`{ pct, chars, replyChars, para, paraCount, cps, source }`，与块里的 `read-pos` 行同源；该轮没有输出 read-pos 时为 `null`（heartlink 0.7.1 起写入）。
+
 用途：带 MVU 等系统的卡片读取；导出聊天时随 JSONL 一起带走，可做统计。
 
 ## 4. 页面事件（主窗口 `dispatchEvent`）
@@ -101,4 +103,4 @@ note: observable record only; phase edges are page events; hr lags seconds; wris
 
 - 命名：`bio_context` 还是沿用 `heartlink_timeline`；变量名 `bio` 还是 `heartlink`。
 - 多设备并存时的 `source` 优先级。
-- 阅读进度估计（每秒约 20 字）是否进标准字段（`read-pos`）。
+- `read-pos` 已作为 v0.1.1 可选字段提案（见第 2 节）。真机（2026-09-16，回复 3809 字、读 2:17、峰值 @133s）暴露的问题：读时长 × cps 远小于回复字数时（读者只读了一部分或在跳读），峰值落在读相位末尾却被换算成 21%，位置含义不可靠。待定：是否加 `partial` 标记（readSec × cps < 0.8 × replyChars 时），或改用“峰值在读相位中的相对位置”作为兜底表述。

@@ -4,7 +4,7 @@
 
 **一个开放约定的提案：把读者的实时生理信号（先是心率）以统一格式送进酒馆（SillyTavern）的提示词，设备无关、预设无关、卡片无关。**
 
-Status: draft v0.1 (2026-09-16). Reference implementation: `heartlink` v0.6 (WHOOP → Chrome Web Bluetooth → Tavern Helper global script; falls back to SillyTavern core `setExtensionPrompt` / `eventSource` when Tavern Helper APIs are absent), to be published separately.
+Status: draft v0.1 (2026-09-16). Reference implementation: `heartlink` v0.7.1 (WHOOP → Chrome Web Bluetooth → Tavern Helper global script; falls back to SillyTavern core `setExtensionPrompt` / `eventSource` when Tavern Helper APIs are absent), to be published separately.
 
 ## Why / 为什么
 
@@ -18,7 +18,7 @@ Wearables can broadcast heart rate over standard Bluetooth. A script can turn th
 2. Chat variable `bio` — `{ v, source, updatedAt, mode, baseline, last, turns[≤20] }` so cards (MVU etc.) can read it and exports carry it.
 3. Page events `bio:sample`, `bio:inject`, `bio:state` — for downstream extensions (e.g. haptics via buttplug.io) to subscribe without touching the device layer.
 
-Optional field (v0.1.1 proposal, implemented in heartlink 0.7): `read-pos: peak ~62% (~870/1400 chars, para 4/7) @6 cps est` — where in the previous reply the reader probably was when the read-phase peak happened, from an estimated (`est`) or self-calibrated (`cal`) reading speed. Still a record, not an interpretation.
+Optional field (v0.1.1 proposal, implemented in heartlink 0.7): `read-pos: peak ~62% (~870/1400 chars, para 4/7) @6 cps est` — where in the previous reply the reader probably was when the read-phase peak happened, from an estimated (`est`) or self-calibrated (`cal`) reading speed. Still a record, not an interpretation. Since heartlink 0.7.1 the same value is also written to `bio.last.readPos` / `bio.turns[].readPos` and to the message's `extra.bio.readPos`. Known limitation from a live capture (3809-char reply read for 2:17, peak at 133 s): when read-time × cps is far below the reply length the mapping is unreliable; a `partial` marker is under discussion (see spec §8).
 
 Interpretation lives in a world-info book (one constant entry + two mode entries) and, optionally, one line in the preset's chain-of-thought (`Reader Signal` → pace / tension / intensity).
 
