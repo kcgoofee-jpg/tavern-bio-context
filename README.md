@@ -4,7 +4,7 @@
 
 **一个开放约定的提案：把读者的实时生理信号（先是心率）以统一格式送进酒馆（SillyTavern）的提示词，设备无关、预设无关、卡片无关。**
 
-Status: draft v0.1 (2026-09-16). Reference implementation: `heartlink` v0.7.1 (WHOOP → Chrome Web Bluetooth → Tavern Helper global script; falls back to SillyTavern core `setExtensionPrompt` / `eventSource` when Tavern Helper APIs are absent), to be published separately.
+Status: draft v0.1 (2026-09-16); v0.2 proposals P-1…P-10 registered in spec §8 after a two-year SillyTavern compatibility audit ([docs/st-compat-audit-2026-09-zh.md](docs/st-compat-audit-2026-09-zh.md), 2026-09-17). Reference implementation: `heartlink` v0.7.1 (WHOOP → Chrome Web Bluetooth → Tavern Helper global script; falls back to SillyTavern core `setExtensionPrompt` / `eventSource` when Tavern Helper APIs are absent), to be published separately.
 
 ## Why / 为什么
 
@@ -62,6 +62,9 @@ See [docs/spec-zh.md](docs/spec-zh.md) (Chinese). English normative text to foll
 - SillyTavern character card v3, STScript, Tavern Helper API — untouched; TBC only fixes a block format, a variable name and event names on top of them.
 - [HZXXXC/sillytavern-heart-rate-hrv](https://github.com/HZXXXC/sillytavern-heart-rate-hrv) (2026-05) — a SillyTavern extension that reads BLE heart rate + HRV and injects an instantaneous state line (`心率 95 bpm (兴奋, 上升↑) | HRV 22 ms`). Same device layer, different context layer: it injects labels at generation time; TBC injects an uninterpreted, phase-labelled record of the whole turn and leaves interpretation to world-info / CoT. It is the closest prior implementation and a natural candidate to emit `<bio_context>` as well.
 - No existing public **convention** for "biosignals → prompt" was found as of 2026-09-16. Corrections welcome via issues.
+
+
+Added 2026-09-17 (from DasterProkio/awesome-ai-companion and follow-ups): [phantom-touch-bridge](https://github.com/mfsnlqy/phantom-touch-bridge) (local haptics bridge with optional heart-rate input), [always-here](https://github.com/Cheiineeey/always-here) (Apple Watch → iOS Shortcuts → HTTP push, sparse cadence), [Akari Pulse](https://github.com/yoruuuchan/akari-pulse) (vivo/BlueOS health → MCP, explicit PASS/NO_DATA/DENIED states), [Toy-Relay-AI-mcp-SOSEXY](https://github.com/tutu-kitty/Toy-Relay-AI-mcp-SOSEXY) (MCP + phone-Chrome Web Bluetooth relay), [dsh-toy](https://github.com/c3ll256/dsh-toy) (guardrails model for the reverse layer), Eventide/Tidefall (simulated body-state engines — the mirror image of measured reader state).
 
 ## License
 

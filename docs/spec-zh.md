@@ -104,3 +104,17 @@ note: observable record only; phase edges are page events; hr lags seconds; wris
 - 命名：`bio_context` 还是沿用 `heartlink_timeline`；变量名 `bio` 还是 `heartlink`。
 - 多设备并存时的 `source` 优先级。
 - `read-pos` 已作为 v0.1.1 可选字段提案（见第 2 节）。真机（2026-09-16，回复 3809 字、读 2:17、峰值 @133s）暴露的问题：读时长 × cps 远小于回复字数时（读者只读了一部分或在跳读），峰值落在读相位末尾却被换算成 21%，位置含义不可靠。待定：是否加 `partial` 标记（readSec × cps < 0.8 × replyChars 时），或改用“峰值在读相位中的相对位置”作为兜底表述。
+
+### v0.2 修改提案（2026-09-17，依据 docs/st-compat-audit-2026-09-zh.md）
+
+- P-1 头部属性：`device`、`transport`（ble|bridge|push|api）、`cadence`、`rr`、`trigger`（normal|swipe|regenerate|continue|impersonate）。
+- P-2 相位行加样本覆盖率 `cov`（Apple 2026 研究门槛：时段覆盖 ≥70% 才算有效）。
+- P-3 稀疏来源模式：cadence ≥ 30 s 不输出 `series`/`hrv`，样本 < 5 的相位写 `n/a (sparse)`。
+- P-4 `read-pos` 加 `partial`：读时长 × cps < 0.8 × 回复字数时不给百分比。
+- P-5 持久化规则：设备脚本不主动调用宿主整聊天保存；消息级数据在宿主自己保存前写入并镜像进 swipe 数据；聊天变量走元数据保存接口。
+- P-6 生成门控：优先用宿主的注入过滤能力（ST 1.13.2+ `filter`），type 白名单作回退；`continue` 只更新 `trigger`。
+- P-7 解释层投递：全局世界书之外，允许在 `WORLDINFO_SCAN_DONE`（ST 1.15+）里程序化加入同样三条。
+- P-8 单窗口：一个聊天同一时刻只能有一个窗口跑设备脚本（ST #5864）。
+- P-9 安全与隐私：除声明的本机桥地址不得发起网络请求；块内不放设备 ID / 令牌；反向层必须有时长上限与全局停止。
+- P-10 反向层契约：消费者只读 `bio:inject.detail.summary` 与 `bio:sample`，协议不定义设备控制。
+

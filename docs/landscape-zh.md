@@ -75,3 +75,7 @@
 
 - Reddit、Discord、X 三处未能检索；建议在 r/SillyTavernAI 和官方 Discord 发一帖问“有没有人接过心率/手环”。
 - 没有找到任何 EEG、皮电、呼吸带接酒馆的项目；协议第 2 节的“扩展字段”暂时没有实例。
+
+## 补遗（2026-09-17）
+
+第一版普查漏掉了 awesome-ai-companion（DasterProkio）清单里的这些项目，评价见 `st-compat-audit-2026-09-zh.md` 第 6 节：phantom-touch-bridge（本机触觉桥，可选心率输入）、always-here（Apple Watch + iOS 快捷指令推送）、Akari Pulse（vivo/BlueOS → MCP）、Toy-Relay-AI-mcp-SOSEXY（MCP + 手机 Chrome Web Bluetooth 中继）、dsh-toy（DeepSeek Harness 玩具插件，guardrails 范本）、Eventide / Tidefall（模拟生理状态引擎）。第一版里"发 issue 给官方/他人"的草稿作废，不再对外推广。
