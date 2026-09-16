@@ -40,6 +40,12 @@ note: observable record only; phase edges are page events; hr lags seconds; wris
 - `mode` 只有两个值：`author`（作者反馈，剧情内无人知晓）、`character`（角色感知，允许映射到 `{{user}}` 的可观察身体线索）。
 - `history` 最多 8 轮，按时间顺序，最右是上一轮。
 - 允许扩展字段（如 `skin-temp`、`spo2`、`breath`），但必须是新行，不改已有行的语义。
+- 可选字段 `read-pos`（v0.1.1 提案，heartlink 0.7 实现）：把 read 相位的峰值时刻换算成“大约读到回复的哪里”。格式：
+  `read-pos: peak ~62% (~870/1400 chars, para 4/7) @6 cps est`
+  - 百分比 = 峰值时刻 × 阅读速度 ÷ 回复正文字数，封顶 100%；`para i/n` 是按空行切分的段落序号；`@N cps` 是采用的阅读速度（字/秒）；`est` 表示估计，`cal` 表示由本场历史自校准（用最近几轮 回复字数 ÷ 读时长 的中位数，只取读时长 20–600 秒且无 too-long 标记的轮次）。
+  - 回复正文字数按去掉 HTML 标签、`<thinking>`/`<style>` 块后的可见字符计，中文默认 6 cps，英文默认 20 cps（按正文中 CJK 字符占比选）。
+  - 峰值不明显（峰值 ≤ 起点 +3 bpm）或 read 相位带 too-long 标记时不输出本行。
+  - 它仍然是记录不是解释：只说“峰值大约对应哪一段”，不说“读者对那段兴奋”。
 - 块内**不得**出现解释性结论（“读者很兴奋”这类），解释权属于解释层。
 
 ## 3. 聊天变量 `bio`

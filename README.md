@@ -18,6 +18,8 @@ Wearables can broadcast heart rate over standard Bluetooth. A script can turn th
 2. Chat variable `bio` — `{ v, source, updatedAt, mode, baseline, last, turns[≤20] }` so cards (MVU etc.) can read it and exports carry it.
 3. Page events `bio:sample`, `bio:inject`, `bio:state` — for downstream extensions (e.g. haptics via buttplug.io) to subscribe without touching the device layer.
 
+Optional field (v0.1.1 proposal, implemented in heartlink 0.7): `read-pos: peak ~62% (~870/1400 chars, para 4/7) @6 cps est` — where in the previous reply the reader probably was when the read-phase peak happened, from an estimated (`est`) or self-calibrated (`cal`) reading speed. Still a record, not an interpretation.
+
 Interpretation lives in a world-info book (one constant entry + two mode entries) and, optionally, one line in the preset's chain-of-thought (`Reader Signal` → pace / tension / intensity).
 
 ## Layers / 分层
