@@ -4,7 +4,7 @@
 
 **一个开放约定的提案：把读者的实时生理信号（先是心率）以统一格式送进酒馆（SillyTavern）的提示词，设备无关、预设无关、卡片无关。**
 
-Status: draft v0.1 (2026-09-16); v0.2 proposals P-1…P-10 registered in spec §8 after a two-year SillyTavern compatibility audit ([docs/st-compat-audit-2026-09-zh.md](docs/st-compat-audit-2026-09-zh.md), 2026-09-17). Reference implementation: `heartlink` v0.7.1 (WHOOP → Chrome Web Bluetooth → Tavern Helper global script; falls back to SillyTavern core `setExtensionPrompt` / `eventSource` when Tavern Helper APIs are absent), to be published separately.
+Status: **v0.2 release candidate** ([docs/spec-v0.2-zh.md](docs/spec-v0.2-zh.md), 2026-09-17) — header attributes (device/transport/cadence/rr/trigger), `prior` and `env` lines, per-phase coverage `cov`, `read-pos: partial`, the `window.tbc` bus with `setPrior`, and the local-bridge WebSocket message set. Reference implementation heartlink 0.8.2 implements everything except the bridge (0.9). v0.1 draft kept as [docs/spec-zh.md](docs/spec-zh.md). Reference implementation: `heartlink` v0.7.1 (WHOOP → Chrome Web Bluetooth → Tavern Helper global script; falls back to SillyTavern core `setExtensionPrompt` / `eventSource` when Tavern Helper APIs are absent), to be published separately.
 
 ## Why / 为什么
 
@@ -14,8 +14,8 @@ Wearables can broadcast heart rate over standard Bluetooth. A script can turn th
 
 ## The three artifacts / 三样东西
 
-1. `<bio_context v="0.1" mode="author|character" source="...">` — one `system` message injected before every user-visible generation, in-chat depth 0, world-info scannable. Fields are fixed English keys, one per line, **no interpretation inside the block**.
-2. Chat variable `bio` — `{ v, source, updatedAt, mode, baseline, last, turns[≤20] }` so cards (MVU etc.) can read it and exports carry it.
+1. `<bio_context v="0.2" mode="author|character" source="..." [device transport cadence rr trigger]>` — one `system` message injected before every user-visible generation, in-chat depth 0, world-info scannable. Fields are fixed English keys, one per line, **no interpretation inside the block**.
+2. Chat variable `bio` — `{ v, source, updatedAt, mode, baseline, prior, last, turns[≤20], lastSignal }` so cards (MVU etc.) can read it and exports carry it.
 3. Page events `bio:sample`, `bio:inject`, `bio:state` — for downstream extensions (e.g. haptics via buttplug.io) to subscribe without touching the device layer.
 
 Optional field (v0.1.1 proposal, implemented in heartlink 0.7): `read-pos: peak ~62% (~870/1400 chars, para 4/7) @6 cps est` — where in the previous reply the reader probably was when the read-phase peak happened, from an estimated (`est`) or self-calibrated (`cal`) reading speed. Still a record, not an interpretation. Since heartlink 0.7.1 the same value is also written to `bio.last.readPos` / `bio.turns[].readPos` and to the message's `extra.bio.readPos`. Known limitation from a live capture (3809-char reply read for 2:17, peak at 133 s): when read-time × cps is far below the reply length the mapping is unreliable; a `partial` marker is under discussion (see spec §8).
