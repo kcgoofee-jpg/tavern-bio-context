@@ -103,13 +103,14 @@ tbc.sources()                     // { signals: { hr: {…}, pressure: {…} }, 
 { "event": "bio:sample", "detail": { "t": 1789600000000, "source": "heartlink-desk", "kind": "hr", "value": 78, "rr": [0.79] } }
 { "event": "bio:inject", "detail": { "text": "<bio_context …>", "mode": "author", "summary": { … } } }
 { "event": "bio:state",  "detail": { "connected": true, "device": "whoop-5.0", "cadence": "1s", "clients": 2 } }
+{ "event": "bio:prior",  "detail": { "source": "whoop-api", "date": "09-14", "fields": { "recovery": 67, "hrv": 69.6, "rhr": 59 } } }
 { "cmd": "push",    "sample": { … } }
 { "cmd": "context", "source": "coyote", "line": "coyote ch-A 35/100 \"经典\" 12s" }
 { "cmd": "prior",   "prior": { "source": "whoop-api", "date": "09-15", "fields": { … } } }
 { "cmd": "hello",   "client": "sillytavern-heartlink", "version": "0.9.0" }
 ```
 
-桥只绑 127.0.0.1；页面侧脚本连上桥后把 `bio:sample` 喂进本地 `tbc.push`，其它逻辑不变。
+桥只绑 127.0.0.1；页面侧脚本连上桥后把 `bio:sample` 喂进本地 `tbc.push`、把 `bio:prior` 交给 `tbc.setPrior`，其它逻辑不变；页面自己连着蓝牙时忽略桥的 `hr`。页面用 `cmd: state` 回传基线、当前相位、上一轮摘要，桥的 UI 据此显示相位。浏览器限制：https 页面连 `ws://127.0.0.1` 在 Chrome / Firefox 允许（回环例外），Safari 不允许。参考实现：heartlink 0.9.1 + heartlink Desk（macOS）。
 
 ## 7. 实现约束（宿主为 SillyTavern 时）
 
