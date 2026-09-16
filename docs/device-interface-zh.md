@@ -70,6 +70,18 @@ type Sample = {
 | Apple Watch（iOS 快捷指令 POST，always-here 路线） | 本机桥 HTTP 入口 | hr, hrv（稀疏） |
 | 健康桥（Akari Pulse 类，MCP/HTTP） | 本机桥 | 日级 `prior`（另立提案） |
 
+### 2.1 环境量与体温（预留，2026-09-17）
+
+读者所处的房间也是"身体的上下文"，但它不是生理量，块里单独一行、不进任何相位统计：
+
+```
+env(mijia-lywsd03, 10s): 26.3°C 58% rh
+```
+
+- `kind: 'room_temperature'`（°C）、`'humidity'`（% rh）走 `tbc.push`，生成器合并成一行 `env(<source>, <cadence>):`，只写最近值。
+- 体温 `kind: 'temperature'`（°C）是生理量，按相位统计（同 §2 规则）；来源只认实时设备（BLE Health Thermometer 0x1809、连续核心温度传感器）。WHOOP / Apple Watch 的夜间皮温是日级，走 `prior:` 提案，不冒充实时。
+- 蓝牙标准入口：Environmental Sensing Service 0x181A（0x2A6E 温度、0x2A6F 湿度）、Health Thermometer Service 0x1809（0x2A1C）。小米 LYWSD03MMC 刷 pvvx/ATC 固件后广播 BTHome，也可 GATT 直连。
+
 ## 3. 执行器把自己的状态送进上下文：`tbc.registerContext(source, fn)`
 
 执行器项目最常见的两个诉求：**让模型知道设备正在做什么**，**让设备跟着读者走**。第一个用这一节，第二个用 §5。
