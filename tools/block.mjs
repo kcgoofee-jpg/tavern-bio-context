@@ -15,6 +15,8 @@ export const EXTENSION_LINES = {
   wear: { level: 'L0' }, button: { level: 'L0' }, motion: { level: 'L0' }, sensor: { level: 'L0' },
   body: { level: 'L2' }, cycle: { level: 'L2' }, journal: { level: 'L2' },
   env: { level: 'L0' },
+  // v0.3 §5.8：触觉输出的当前状态，让卡片 / 预设知道能不能写 <bio_act/>、用户选了哪个档位
+  haptics: { level: 'L0', body: /^(?:off|on \| cap \d{1,3}% \| profile (?:slow-burn|frenzy)(?: \| actuators \d+)?)$/ },
 };
 export const KINDS = ['hr', 'rr', 'pressure', 'temperature', 'room_temperature', 'humidity', 'spo2', 'stress', 'button', 'battery',
   'wear', 'motion', 'skin_temperature', 'resp_rate', 'posture', 'charging', 'ppg'];
@@ -113,6 +115,7 @@ export function parseBlock(text) {
     if (reg) {
       if (reg.level === 'L2' && !l2) errors.push({ line: lineNo, code: 'L2_TAG_MISSING', message: `${name} 是 L2 敏感段，行名后必须带 [L2]` });
       if (reg.level !== 'L2' && l2) errors.push({ line: lineNo, code: 'L2_TAG_WRONG', message: `${name} 不是 L2 段，不得带 [L2]` });
+      if (reg.body && !reg.body.test(m[4])) errors.push({ line: lineNo, code: 'LINE_SYNTAX', message: `${name} 行格式不符：${raw}` });
       if (name === 'workout' && ++workoutCount.n > reg.repeat) errors.push({ line: lineNo, code: 'WORKOUT_TOO_MANY', message: 'workout 行最多 3 条' });
     } else if (!KINDS.includes(name) && !name.startsWith('x_')) {
       warnings.push({ line: lineNo, code: 'LINE_UNKNOWN', message: `未登记的行名 ${name}（读者会忽略；自定义请用 x_ 前缀）` });

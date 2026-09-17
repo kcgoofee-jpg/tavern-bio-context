@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
 import { parseBlock } from './block.mjs';
-import { parseBioActs, patternFrames, PATTERNS } from './bio-act.mjs';
+import { parseBioActs, patternFrames, PATTERNS, PROFILES, resolveSettings, liftIntensity } from './bio-act.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 let failed = 0;
@@ -52,6 +52,20 @@ for (const p of PATTERNS) {
   const f = patternFrames(p, 0.8, 2000);
   const ok = f.length >= 2 && f[f.length - 1][1] === 0 && f.every(([t, v], i) => v >= 0 && v <= 0.8 && (i === 0 || t >= f[i - 1][0]));
   ok ? pass(`bio-act/帧 ${p}`) : fail(`bio-act/帧 ${p} 不合规：${JSON.stringify(f)}`);
+}
+
+// §5.8 档位与自定义参数
+{
+  const fz = resolveSettings('frenzy');
+  const cases = [
+    ['档位：狂暴抬高强度', JSON.stringify(patternFrames('long', 0.5, null, fz)) === JSON.stringify([[0, 0.7], [5000, 0]])],
+    ['档位：强度 0 仍是停止', liftIntensity(0, 0.9) === 0 && patternFrames('pulse', 0, null, fz)[0][1] === 0],
+    ['档位：不传参数与初版一致', JSON.stringify(patternFrames('wave', 0.8, null)) === JSON.stringify(patternFrames('wave', 0.8, null, resolveSettings('slow-burn')))],
+    ['自定义：覆盖默认时长', patternFrames('long', 1, null, resolveSettings('slow-burn', { defaultMs: { long: 8000 } })).at(-1)[0] === 8000],
+    ['自定义：每条回复上限最多 5', resolveSettings('frenzy', { maxPerReply: 9 }).maxPerReply === 5 && parseBioActs('<bio_act/>'.repeat(6), { maxPerReply: 5 }).acts.length === 5],
+    ['未知档位按慢热', resolveSettings('turbo').profile === 'slow-burn' && Object.keys(PROFILES).join() === 'slow-burn,frenzy'],
+  ];
+  for (const [name, ok] of cases) ok ? pass(`bio-act/${name}`) : fail(`bio-act/${name}`);
 }
 
 // JSON Schema

@@ -1,0 +1,12 @@
+<bio_context v="0.3" mode="backstage" source="heartlink">
+sent: 21:04:40
+baseline: n/a (warming up)
+history: n/a
+gen: n/a
+read: n/a
+write: n/a
+away: none
+send: n/a
+haptics(heartlink): on | cap 60% | profile turbo
+note: observable record only; phase edges are page events; hr lags seconds; wrist motion lowers confidence
+</bio_context>

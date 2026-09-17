@@ -9,10 +9,44 @@ export const DEFAULT_INTENSITY = 0.5;
 // 各模式的默认时长（毫秒）；long / heartbeat / wave 可由 ms 指定，pulse / double / triple 固定
 export const DEFAULT_MS = { pulse: 200, double: 500, triple: 800, long: 1500, heartbeat: 2700, wave: 3000 };
 
+// v0.3 §5.8：强度档位预设。用户开场选择，之后可在设置里改；每一项也可单独自定义
+//   floor：强度下限——非 0 的强度按 floor + (1 − floor) × 强度 抬高（0 仍是停止）
+//   defaultMs：持续类模式没写 ms 时的时长
+//   minIntervalMs：同一执行器两次触发的缺省最小间隔（执行器自己声明的更大时取更大者）
+//   maxPerReply：每条回复最多执行几个（上限 MAX_PER_REPLY_LIMIT）
+export const PROFILES = {
+  'slow-burn': { floor: 0, defaultMs: { long: 1500, heartbeat: 2700, wave: 3000 }, minIntervalMs: 1500, maxPerReply: 3 },
+  frenzy: { floor: 0.4, defaultMs: { long: 5000, heartbeat: 5400, wave: 6000 }, minIntervalMs: 800, maxPerReply: 5 },
+};
+export const DEFAULT_PROFILE = 'slow-burn';
+export const MAX_PER_REPLY_LIMIT = 5;
+
+// 档位 + 用户覆盖 → 生效的参数（未知档位按 DEFAULT_PROFILE）
+export function resolveSettings(profile, overrides) {
+  const base = PROFILES[profile] || PROFILES[DEFAULT_PROFILE];
+  const o = overrides || {};
+  const clamp01 = (v, d) => (Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : d);
+  return {
+    profile: PROFILES[profile] ? profile : DEFAULT_PROFILE,
+    floor: clamp01(o.floor, base.floor),
+    defaultMs: Object.assign({}, base.defaultMs, o.defaultMs || {}),
+    minIntervalMs: Number.isFinite(o.minIntervalMs) && o.minIntervalMs >= 0 ? o.minIntervalMs : base.minIntervalMs,
+    maxPerReply: Number.isInteger(o.maxPerReply) ? Math.min(MAX_PER_REPLY_LIMIT, Math.max(0, o.maxPerReply)) : base.maxPerReply,
+  };
+}
+// 强度按下限抬高；0 永远是停止（§5.9）
+export function liftIntensity(intensity, floor) {
+  const I = Math.min(1, Math.max(0, Number(intensity) || 0));
+  if (I === 0) return 0;
+  const f = Math.min(1, Math.max(0, floor || 0));
+  return Math.round((f + (1 - f) * I) * 1000) / 1000;
+}
+
 const num = (v) => (v == null || v === '' ? null : Number(v));
 
-// 返回 { acts: [...], errors: [...] }；超过 3 个的部分丢弃并报错
-export function parseBioActs(text) {
+// 返回 { acts: [...], errors: [...] }；超过上限（缺省 3，opts.maxPerReply 可改，最多 5）的部分丢弃并报错
+export function parseBioActs(text, opts) {
+  const limit = opts && Number.isInteger(opts.maxPerReply) ? Math.min(MAX_PER_REPLY_LIMIT, Math.max(0, opts.maxPerReply)) : MAX_PER_REPLY;
   const acts = [];
   const errors = [];
   const re = /<bio_act\b([^>]*?)\/?>/g;
@@ -33,22 +67,25 @@ export function parseBioActs(text) {
     if (!PATTERNS.includes(act.pattern)) { errors.push({ code: 'BAD_PATTERN', value: act.pattern, fallback: 'pulse' }); act.pattern = 'pulse'; }
     if (!Number.isFinite(act.intensity) || act.intensity < 0 || act.intensity > 1) { errors.push({ code: 'BAD_INTENSITY', value: a.intensity }); act.intensity = Math.min(1, Math.max(0, Number.isFinite(act.intensity) ? act.intensity : DEFAULT_INTENSITY)); }
     if (act.durationMs != null && (!Number.isFinite(act.durationMs) || act.durationMs <= 0)) { errors.push({ code: 'BAD_MS', value: a.ms }); act.durationMs = null; }
-    if (acts.length >= MAX_PER_REPLY) { errors.push({ code: 'TOO_MANY', value: acts.length + 1 }); continue; }
+    if (acts.length >= limit) { errors.push({ code: 'TOO_MANY', value: acts.length + 1 }); continue; }
     acts.push(act);
   }
   return { acts, errors };
 }
 
 // 模式 → 帧 [[毫秒偏移, 强度 0–1], …]，最后一帧强度必为 0
-export function patternFrames(pattern, intensity, durationMs) {
-  const I = Math.min(1, Math.max(0, intensity));
+// opts：{ floor, defaultMs }（resolveSettings 的结果即可）；不传时与 v0.3 初版完全一致
+export function patternFrames(pattern, intensity, durationMs, opts) {
+  const o = opts || {};
+  const I = liftIntensity(intensity, o.floor || 0);
+  const D = Object.assign({}, DEFAULT_MS, o.defaultMs || {});
   const r = (v) => Math.round(v * 1000) / 1000;
   switch (pattern) {
     case 'double': return [[0, I], [180, 0], [320, I], [500, 0]];
     case 'triple': return [[0, I], [160, 0], [320, I], [480, 0], [640, I], [800, 0]];
-    case 'long': { const ms = durationMs || DEFAULT_MS.long; return [[0, I], [ms, 0]]; }
+    case 'long': { const ms = durationMs || D.long; return [[0, I], [ms, 0]]; }
     case 'heartbeat': {
-      const ms = durationMs || DEFAULT_MS.heartbeat;
+      const ms = durationMs || D.heartbeat;
       const beats = Math.max(1, Math.round(ms / 900));
       const out = [];
       for (let b = 0; b < beats; b++) {
@@ -58,7 +95,7 @@ export function patternFrames(pattern, intensity, durationMs) {
       return out;
     }
     case 'wave': {
-      const ms = durationMs || DEFAULT_MS.wave;
+      const ms = durationMs || D.wave;
       const steps = 10;
       const out = [];
       for (let i = 0; i <= steps; i++) out.push([Math.round((ms * i) / steps), r(I * Math.sin((Math.PI * i) / steps))]);

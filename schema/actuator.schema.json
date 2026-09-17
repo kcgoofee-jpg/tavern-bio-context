@@ -3,16 +3,103 @@
   "$id": "https://github.com/kcgoofee-jpg/tavern-bio-context/schema/actuator.schema.json",
   "title": "TBC v0.3 actuator capabilities (tbc.registerActuator caps)",
   "type": "object",
-  "required": ["outputs"],
+  "required": [
+    "outputs"
+  ],
   "additionalProperties": false,
   "properties": {
-    "outputs": { "type": "array", "minItems": 1, "items": { "enum": ["Vibrate", "Rotate", "Oscillate", "Constrict", "Spray", "Temperature", "Led", "Position", "HwPositionWithDuration", "Estim"] } },
-    "patterns": { "type": "array", "items": { "enum": ["pulse", "double", "triple", "long", "heartbeat", "wave"] } },
-    "levels": { "type": "boolean", "description": "true: 能按强度连续调节（玩具）；false: 只有开关或固定模式（手环）" },
-    "maxIntensity": { "type": "number", "minimum": 0, "maximum": 1 },
-    "maxDurationMs": { "type": "integer", "minimum": 1 },
-    "minIntervalMs": { "type": "integer", "minimum": 0, "default": 10000 },
-    "device": { "type": "string", "maxLength": 64, "pattern": "^[^\\n]*$" },
-    "via": { "enum": ["page", "bridge", "intiface", "other"] }
+    "outputs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "enum": [
+          "Vibrate",
+          "Rotate",
+          "Oscillate",
+          "Constrict",
+          "Spray",
+          "Temperature",
+          "Led",
+          "Position",
+          "HwPositionWithDuration",
+          "Estim"
+        ]
+      }
+    },
+    "patterns": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "pulse",
+          "double",
+          "triple",
+          "long",
+          "heartbeat",
+          "wave"
+        ]
+      }
+    },
+    "levels": {
+      "type": "boolean",
+      "description": "true: 能按强度连续调节（玩具）；false: 只有开关或固定模式（手环）"
+    },
+    "maxIntensity": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "maxDurationMs": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "minIntervalMs": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 10000
+    },
+    "device": {
+      "type": "string",
+      "maxLength": 64,
+      "pattern": "^[^\\n]*$"
+    },
+    "via": {
+      "enum": [
+        "page",
+        "bridge",
+        "intiface",
+        "mcp",
+        "other"
+      ]
+    },
+    "group": {
+      "type": "string",
+      "maxLength": 64,
+      "description": "共用同一物理执行部件的输出填同一个组名；同组同一时间只有一个在动（v0.3 §5.9）"
+    },
+    "keepaliveMs": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "设备要求每隔多少毫秒重发一次指令，否则自己停下（v0.3 §5.9）"
+    },
+    "nativePatterns": {
+      "type": "object",
+      "description": "抽象模式 → 设备自带模式编号或名字（可选，v0.3 §5.9）",
+      "propertyNames": {
+        "enum": [
+          "pulse",
+          "double",
+          "triple",
+          "long",
+          "heartbeat",
+          "wave"
+        ]
+      },
+      "additionalProperties": {
+        "type": [
+          "string",
+          "integer"
+        ]
+      }
+    }
   }
 }

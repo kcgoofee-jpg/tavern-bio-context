@@ -15,6 +15,7 @@ wear(whoop-5.0, event): on
 button(whoop-5.0, event): read @47s ×1
 sensor(whoop-5.0): battery 64% | charging no | worn yes | signal ok
 device: sample-actuator idle
+haptics(heartlink): on | cap 60% | profile frenzy | actuators 3
 series(10s from 21:01:10): 74 75 76 75 78 83 86 81 80 79 78
 note: observable record only; phase edges are page events; hr lags seconds; wrist motion lowers confidence
 </bio_context>
