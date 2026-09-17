@@ -223,6 +223,7 @@
               "HOST_UNSUPPORTED",
               "BAD_INPUT",
               "BLOCK_INVALID",
+              "GUIDE_CONFLICT",
               "MULTI_PRODUCER",
               "SCAN_COLLISION"
             ]
