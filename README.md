@@ -6,6 +6,19 @@
 
 Status: **v0.2 release candidate** ([docs/spec-v0.2-zh.md](docs/spec-v0.2-zh.md), 2026-09-17) — header attributes (device/transport/cadence/rr/trigger), `prior` and `env` lines, per-phase coverage `cov`, `read-pos: partial`, the `window.tbc` bus with `setPrior`, and the local-bridge WebSocket message set. Reference implementation heartlink 0.8.2 implements everything except the bridge (0.9). v0.1 draft kept as [docs/spec-zh.md](docs/spec-zh.md). Reference implementation: `heartlink` v0.7.1 (WHOOP → Chrome Web Bluetooth → Tavern Helper global script; falls back to SillyTavern core `setExtensionPrompt` / `eventSource` when Tavern Helper APIs are absent), to be published separately.
 
+## Checkable spec / 可检查的规范
+
+| Path | What |
+|---|---|
+| `docs/conformance-zh.md` | 规范用语（必须 / 应该 / 可以）、一致性角色、版本策略、登记表 |
+| `schema/block.abnf` | 注入块语法 |
+| `schema/*.schema.json` | 聊天变量 `bio`、卡片声明、诊断对象的 JSON Schema |
+| `fixtures/` | 合规与不合规样例（数值均为编造） |
+| `tools/block.mjs`, `tools/validate.mjs` | 参考解析器与校验脚本：`npm install && npm test`；`node tools/validate.mjs 某个块.txt` |
+| `CHANGELOG.md`, `CONTRIBUTING.md` | 变更记录、贡献流程 |
+
+Current draft: [docs/spec-v0.3-draft-zh.md](docs/spec-v0.3-draft-zh.md) (three modes, card declaration, phase scope, diagnostics, daily lines, sensitivity tiers, haptic output).
+
 ## Why / 为什么
 
 Wearables can broadcast heart rate over standard Bluetooth. A script can turn that into a compact, phase-labelled record of what the reader's body did while a reply was generated, while it was read, and while the next message was typed. Models use it well — but only if every device script, preset author and card author agree on **one block format, one chat-variable schema and one set of page events**. This repo is that agreement.

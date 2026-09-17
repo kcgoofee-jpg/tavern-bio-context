@@ -1,0 +1,53 @@
+; Tavern Bio-Context 注入块语法（v0.3 草案；兼容 v0.2）
+; 参考解析器：tools/block.mjs；样例：fixtures/blocks/
+; 说明：字符串字面量区分大小写（RFC 7405 %s）；行尾为 LF；"—"、"→"、"–"、"·"、"×"、"~" 为 UTF-8 字符。
+
+block          = header LF fixed-zone *(extension-line LF) [series-line LF] note-line LF *(warn-line LF) %s"</bio_context>"
+
+header         = %s"<bio_context" 1*(SP attribute) ">"
+attribute      = attr-name "=" DQUOTE attr-value DQUOTE
+attr-name      = %s"v" / %s"mode" / %s"source" / %s"device" / %s"transport" / %s"cadence" / %s"rr" / %s"trigger" / %s"perceiver" / x-name
+attr-value     = *(%x20-21 / %x23-3B / %x3D / %x3F-10FFFF)      ; 不含 " < >
+; 必需：v、mode、source。取值见 docs/conformance-zh.md §4 登记表。
+
+fixed-zone     = sent-line LF [scope-line LF] baseline-line LF [prior-line LF] history-line LF
+                 gen-line LF read-line LF [read-pos-line LF] write-line LF away-line LF send-line LF
+sent-line      = %s"sent: " clock
+scope-line     = %s"scope: gen, read = previous reply; write, send = this message"   ; v0.3
+baseline-line  = %s"baseline: " ( bpm SP "(" method [", n=" 1*DIGIT] ["; hrv " 1*DIGIT " ms"] ")" / na-reason )
+method         = %s"quiet-median" / %s"p20" / %s"manual"
+prior-line     = %s"prior(" source-id ", " date ")" ": " fields
+history-line   = %s"history: " ( %s"n/a" / %s"read-peaks " values [" | read-dur " values] [" | hrv " values] )
+gen-line       = %s"gen: " ( %s"n/a" / dur [SP "(" text ")"] " | " hr-part *segment )
+read-line      = %s"read: " ( %s"n/a" [SP "(" text ")"] / dur " | " hr-part *segment )
+read-pos-line  = %s"read-pos: " text
+write-line     = %s"write: " ( %s"n/a" / dur ", " 1*DIGIT " chars, pauses " 1*DIGIT ", edits " 1*DIGIT " | " hr-part *segment )
+away-line      = %s"away: " ( %s"none" / away-span *("; " away-span) )
+away-span      = clock "–" clock SP (%s"hidden" / %s"idle") [SP range]
+send-line      = %s"send: " ( %s"n/a" / bpm [SP "(" ("+" / "-") 1*DIGIT "%)"] )
+
+extension-line = device-line / named-line
+device-line    = %s"device: " 1*120(%x20-3B / %x3D / %x3F-10FFFF)
+named-line     = line-name "(" text ")" [%s" [L2]"] ": " fields
+line-name      = %s"sleep" / %s"day" / %s"workout" / %s"trend" / %s"wear" / %s"button" / %s"motion" / %s"sensor"
+               / %s"body" / %s"cycle" / %s"journal" / %s"env" / kind / x-name
+; body、cycle、journal 必须带 " [L2]"；其他行不得带。workout 最多 3 行。
+
+series-line    = %s"series(" 1*DIGIT %s"s from " clock "): " values
+note-line      = %s"note: observable record only; phase edges are page events; hr lags seconds; wrist motion lowers confidence"
+warn-line      = %s"warn: " text
+
+hr-part        = %s"hr " 1*DIGIT "→" 1*DIGIT SP range [%s" peak " 1*DIGIT " @" 1*DIGIT "s"] / %s"n/a" [SP "(" text ")"]
+segment        = " | " 1*(%x20-7B / %x7D-10FFFF)
+range          = "[" 1*DIGIT "–" 1*DIGIT "]"
+bpm            = 1*3DIGIT %s" bpm"
+na-reason      = %s"n/a (" text ")"
+clock          = 2DIGIT ":" 2DIGIT ":" 2DIGIT
+dur            = 1*DIGIT "s" / 1*DIGIT ":" 2DIGIT
+date           = 1*(%x20-28 / %x2A-10FFFF)
+source-id      = 1*(ALPHA / DIGIT / "-" / "_" / ".")
+kind           = 1*(%x61-7A / "_")
+x-name         = %s"x_" 1*(%x61-7A / DIGIT / "_")
+values         = 1*(DIGIT / SP / ":" / "·")
+fields         = text
+text           = 1*(%x20-10FFFF)

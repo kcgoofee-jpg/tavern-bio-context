@@ -1,0 +1,4 @@
+{"v":"0.2","source":"heartlink","updatedAt":1789560584206,"mode":"author","baseline":73,
+ "prior":{"source":"whoop-api","date":"09-15","fields":{"recovery":67,"hrv":69.6,"rhr":59}},
+ "last":{"t":1789560584206,"readStart":1789560460000,"readSec":117,"readPeak":83,"readMean":77,"sendBpm":80,"baseline":73},
+ "turns":[{"t":1789560584206,"readSec":117,"readPeak":83}],"lastSignal":null}

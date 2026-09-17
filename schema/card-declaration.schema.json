@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kcgoofee-jpg/tavern-bio-context/schema/card-declaration.schema.json",
+  "title": "TBC card declaration (data.extensions.tbc)",
+  "description": "角色卡对 bio 数据用法的声明（v0.3 §1.2）。实现只读，用户在聊天里的选择优先。",
+  "type": "object",
+  "properties": {
+    "mode_hint": { "enum": ["backstage", "in-story", "device-aware", "author", "character"] },
+    "perceiver": {
+      "oneOf": [
+        { "$ref": "#/$defs/name" },
+        { "type": "array", "items": { "$ref": "#/$defs/name" }, "minItems": 1, "maxItems": 3, "uniqueItems": true }
+      ]
+    },
+    "min_spec": { "type": "string", "pattern": "^0\\.\\d+$", "description": "卡需要的最低协议版本（可选）" }
+  },
+  "additionalProperties": false,
+  "anyOf": [{ "required": ["mode_hint"] }, { "required": ["perceiver"] }],
+  "$defs": {
+    "name": { "type": "string", "minLength": 1, "maxLength": 24, "pattern": "^[^\"<>、]+$" }
+  }
+}

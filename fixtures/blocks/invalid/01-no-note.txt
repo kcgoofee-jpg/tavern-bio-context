@@ -1,0 +1,10 @@
+<bio_context v="0.2" mode="author" source="heartlink">
+sent: 20:31:05
+baseline: n/a (session too short)
+history: n/a
+gen: n/a
+read: n/a (no previous reply)
+write: n/a
+away: none
+send: 76 bpm
+</bio_context>

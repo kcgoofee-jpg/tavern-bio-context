@@ -1,0 +1,7 @@
+{
+  "01-no-note.txt": ["NOTE_MISSING"],
+  "02-bad-mode.txt": ["HEADER_MODE"],
+  "03-serial-and-perceiver-in-backstage.txt": ["PRIVACY_SERIAL", "PERCEIVER_IN_BACKSTAGE"],
+  "04-l2-without-tag-and-order.txt": ["LINE_MISSING", "L2_TAG_MISSING"],
+  "05-conclusion-words.txt": ["LINE_SYNTAX"]
+}

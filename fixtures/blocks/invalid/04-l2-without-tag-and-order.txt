@@ -1,0 +1,12 @@
+<bio_context v="0.3" mode="in-story" source="heartlink">
+sent: 20:31:05
+history: n/a
+baseline: n/a (session too short)
+gen: n/a
+read: n/a (no previous reply)
+write: n/a
+away: none
+send: 76 bpm
+cycle(manual, 09-17): day 12
+note: observable record only; phase edges are page events; hr lags seconds; wrist motion lowers confidence
+</bio_context>

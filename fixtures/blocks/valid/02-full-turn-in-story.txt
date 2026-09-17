@@ -1,0 +1,20 @@
+<bio_context v="0.3" mode="in-story" source="heartlink" device="whoop-5.0" transport="ble" cadence="1s" rr="yes" trigger="normal" perceiver="斯琪娅">
+sent: 21:04:40
+scope: gen, read = previous reply; write, send = this message
+baseline: 72 bpm (quiet-median, n=412; hrv 64 ms)
+prior(whoop-api, 09-17): recovery 58 | hrv 61.2 ms | rhr 57 bpm | sleep 6.1 h
+history: read-peaks 78 84 | read-dur 1:52 2:10 | hrv 60 · 55
+gen: 41s (ttft 12s, reasoning 9s, body 20s) | hr 74→75 [73–77] | cov 98%
+read: 2:10 | hr 75→81 [73–86] peak 86 @47s | cov 96% | rr-loss 14% | hrv 55 ms
+read-pos: peak ~38% (~540/1420 chars, para 3/8) @6 cps est
+write: 18s, 52 chars, pauses 2, edits 1 | hr 81→78 [77–81] | cov 100% | rr-loss 61%
+away: none
+send: 78 bpm (+8%)
+sleep(whoop-api, night of 09-16): 00:10–06:40 | in-bed 6.5 h | asleep 6.1 h | need 7.9 h | debt 1.8 h | eff 88%
+wear(whoop-5.0, event): on
+button(whoop-5.0, event): read @47s ×1
+sensor(whoop-5.0): battery 64% | charging no | worn yes | signal ok
+device: sample-actuator idle
+series(10s from 21:01:10): 74 75 76 75 78 83 86 81 80 79 78
+note: observable record only; phase edges are page events; hr lags seconds; wrist motion lowers confidence
+</bio_context>

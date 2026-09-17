@@ -1,0 +1,12 @@
+<bio_context v="0.2" mode="author" source="heartlink" device="whoop-5.0" transport="ble" cadence="1s" rr="yes" trigger="normal">
+sent: 20:31:05
+baseline: n/a (session too short)
+history: n/a
+gen: n/a
+read: n/a (no previous reply)
+write: 12s, 38 chars, pauses 1, edits 0 | hr 74→76 [73–76] | cov 100% | rr-loss 8%
+away: none
+send: 76 bpm
+series(10s from 20:30:10): · · 74 75 73 74 76
+note: observable record only; phase edges are page events; hr lags seconds; wrist motion lowers confidence
+</bio_context>

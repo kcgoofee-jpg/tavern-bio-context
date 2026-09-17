@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kcgoofee-jpg/tavern-bio-context/schema/bio-variable.schema.json",
+  "title": "TBC chat variable bio",
+  "description": "聊天变量 bio（v0.2 §3，v0.3 §3 增量）。未列出的字段允许存在，读者应忽略。",
+  "type": "object",
+  "required": ["v", "source", "updatedAt", "mode"],
+  "properties": {
+    "v": { "type": "string", "pattern": "^0\\.\\d+$" },
+    "source": { "type": "string" },
+    "updatedAt": { "type": "integer" },
+    "mode": { "enum": ["backstage", "in-story", "device-aware", "author", "character"] },
+    "baseline": { "type": ["number", "null"] },
+    "prior": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/daily" }] },
+    "last": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/turn" }] },
+    "turns": { "type": "array", "maxItems": 20, "items": { "$ref": "#/$defs/turn" } },
+    "lastSignal": { "type": ["object", "null"] },
+    "daily": { "type": "object" },
+    "sensor": { "type": ["object", "null"] },
+    "sensitive": {
+      "type": "object",
+      "properties": { "body": { "type": ["object", "null"] }, "cycle": { "type": ["object", "null"] }, "journal": { "type": ["object", "null"] } }
+    }
+  },
+  "$defs": {
+    "daily": {
+      "type": "object",
+      "required": ["source", "fields"],
+      "properties": { "source": { "type": "string" }, "date": { "type": ["string", "null"] }, "fields": { "type": "object" } }
+    },
+    "turn": {
+      "type": "object",
+      "required": ["t"],
+      "properties": {
+        "t": { "type": "integer" },
+        "readSec": { "type": ["number", "null"] },
+        "readPeak": { "type": ["number", "null"] },
+        "sendBpm": { "type": ["number", "null"] },
+        "baseline": { "type": ["number", "null"] },
+        "readPos": { "type": ["object", "null"] }
+      }
+    }
+  }
+}

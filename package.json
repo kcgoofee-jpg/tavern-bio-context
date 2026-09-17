@@ -1,0 +1,19 @@
+{
+  "name": "tavern-bio-context",
+  "version": "0.3.0-draft",
+  "private": true,
+  "description": "Tavern Bio-Context: spec, schemas, fixtures and validator",
+  "license": "CC-BY-4.0",
+  "type": "module",
+  "scripts": {
+    "test": "node tools/validate.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kcgoofee-jpg/tavern-bio-context.git"
+  },
+  "devDependencies": {
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1"
+  }
+}

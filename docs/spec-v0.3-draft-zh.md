@@ -1,6 +1,6 @@
 # Tavern Bio-Context（TBC）v0.3 草案
 
-2026-09-17。相对 [v0.2](spec-v0.2-zh.md) 的增量，v0.2 未提到的规则全部照旧。能力来源见 [extension-candidates-zh.md](extension-candidates-zh.md)。
+2026-09-17。相对 [v0.2](spec-v0.2-zh.md) 的增量，v0.2 未提到的规则全部照旧。规范用语、一致性角色、版本策略与登记表见 [conformance-zh.md](conformance-zh.md)；语法见 `schema/block.abnf`，样例与校验见 `fixtures/`、`tools/validate.mjs`。能力来源见 [extension-candidates-zh.md](extension-candidates-zh.md)。
 
 ## 0. 原则（v0.3 新增）
 
@@ -55,6 +55,7 @@ v0.2 的 `author` / `character` 容易被读成"谁在说话"，实际含义是"
 | 字段 | 取值 | 含义 |
 |---|---|---|
 | `mode_hint` | `backstage` / `in-story` / `device-aware`（旧值 `author` / `character` 也认） | 这张卡建议的默认模式。**只是默认值**：用户在该聊天里手动选过模式，一律以用户为准 |
+| `min_spec` | `0.数字`（可选） | 这张卡需要的最低协议版本；实现低于它时应该在诊断里提示 |
 | `perceiver` | 字符串或字符串数组，≤ 3 个，每个 ≤ 24 字 | `in-story` / `device-aware` 时，由谁在故事里察觉读者的身体状态。缺省 = 在场角色都可以 |
 
 实现要求：
@@ -65,12 +66,28 @@ v0.2 的 `author` / `character` 容易被读成"谁在说话"，实际含义是"
 4. 解释层（世界书等）看到 `perceiver` 时，只让这些角色表达察觉，其他在场角色照常行动、不评论读者身体。
 5. 卡不应依赖某个实现的解释层条目名或标签名；需要读法时写“按注入块的读法”。
 
+## 1.3 相位归属（v0.3 新增）
+
+相位描述的是**不同时间段**，不是同一件事：
+
+| 相位 | 对应的内容 |
+|---|---|
+| `gen`、`read`、`read-pos` | 读者等待和阅读**上一条回复**时的身体 |
+| `write`、`send` | 读者写**这一条消息**时和发送那一刻的身体 |
+| `away` | 上一条回复出完到这次发送之间的离开区间 |
+
+规则：
+
+1. 生产者**应该**在 `sent` 后输出固定行 `scope: gen, read = previous reply; write, send = this message`，让模型不用读说明也知道归属。
+2. 解释层**不得**把 `read` 的峰值归到本轮新消息里发生的事件上；`read-pos` 是唯一可以把峰值对应到上一条回复具体位置的依据。
+3. 与 `away` 重叠、带 `flag` 或 `cov` < 70% 的相位，解释层**不应**据此判断读者反应。
+4. 没有基线（`baseline: n/a`）时，解释层**不得**做“比刚才 / 比平时快慢”的比较。
+
 ## 2. 块格式增量
 
-新增行的顺序（放在 v0.2 的 `send` 之后、`series` 之前）：
+新增行放在 v0.2 的 `send` 之后、`series` 之前（扩展区，顺序不限；`prior` 仍在 `baseline` 之后，见 v0.2）；`note` 之后可以有 `warn:` 行（生产者提示数据可能不完整）：
 
 ```
-prior(whoop-api, 09-17): recovery 67 | hrv 69.6 ms | rhr 59 bpm | spo2 95.5% | skin 33.6°C
 sleep(whoop-api, night of 09-16): 23:40–07:05 | in-bed 7.4 h | asleep 6.9 h | need 7.8 h | debt 0.9 h | deep 1.2 h | rem 1.6 h | light 4.1 h | awake 0.5 h | eff 91% | perf 84% | consistency 77% | disturbances 3 | resp 14.8 rpm
 day(whoop-api, 09-16): strain 14.2 | stress 1.3/3 | kcal 2310 | steps 8120 | avg-hr 72 | max-hr 171
 workout(whoop-api): 18:40–19:25 running 45m | avg-hr 152 | max-hr 178 | strain 12.1 | kcal 480 | zones 0:02 0:08 0:20 0:12 0:03 | dist 7.2 km
@@ -154,6 +171,23 @@ tbc.getExposure() / tbc.setExposure({ sleep: true, body: false, … })   // 按�
 
 Sample 增加两个可选字段：`lagMs`（数据产生到到达的延迟）、`axes`。
 
+### 4.2 诊断接口（v0.3 新增）
+
+```js
+tbc.diagnostics()        // → 对象，符合 schema/diagnostics.schema.json
+tbc.on('bio:diagnostics', fn)   // problems 有变化时发出，detail 同上
+```
+
+- 生产者**必须**实现 `diagnostics()`；返回值**不得**含心率序列与设备序列号。
+- `problems` 用登记过的代码（conformance-zh.md §4.4），每条带给用户的 `message` 与下一步 `hint`。
+- 卡片、开场页、世界书脚本**应该**用它解释“为什么没联动”，而不是自己猜。
+
+### 4.3 注入开关与隐私告知（v0.3 新增）
+
+- 生产者**必须**提供关闭注入的开关（`tbc.setExposure({ inject: false })` 或自己的界面），关闭时 `diagnostics()` 报 `INJECTION_DISABLED`。
+- 生产者**应该**在首次连接设备时告知：心率会随提示词发给用户配置的模型服务商。
+- 只在用户可见生成时注入：后台生成（安静生成、变量更新、摘要等）**不得**带注入块；`diagnostics().injection.background_skipped` 记录跳过次数。
+
 ## 5. 输出接口（新增）：触觉 / 振动反馈
 
 v0.2 只规定了执行器怎样**报告状态**（`registerContext`）和怎样**跟随读者**（订阅）。v0.3 增加一个统一的**触发接口**，让角色、卡片脚本、扩展能让设备动起来，第一个落地对象是手环振动。
@@ -217,7 +251,7 @@ WHOOP 4.0：`RUN_HAPTICS_PATTERN`（0x4F）`[patternId, loops, 0, 0, 0]`。WHOOP
 
 - v0.2 读者遇到不认识的行应忽略（v0.2 已要求）。
 - `prior` 行与 `bio.prior` 保留；`setPrior` 保留。
-- 首行 `v="0.3"`。
+- 首行 `v="0.3"`；用到本文件任一新增内容的生产者必须写 `v="0.3"`。
 - `mode` 旧值 `author` / `character` 作为别名继续有效（§1.1）；卡片声明与首行 `perceiver` 属性是可选新增，旧读者忽略即可（§1.2）；世界书按 `mode="…"` 触发的条目要同时认新旧两个关键字。
 
 ## 7. 待定
