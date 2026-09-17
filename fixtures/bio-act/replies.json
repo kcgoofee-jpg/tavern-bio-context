@@ -1,0 +1,10 @@
+[
+  { "name": "基本", "text": "影子轻轻碰了碰您的手腕。<bio_act output=\"Vibrate\" pattern=\"double\" intensity=\"0.3\"/>",
+    "acts": [{ "target": "*", "output": "Vibrate", "pattern": "double", "intensity": 0.3, "durationMs": null }], "errors": [] },
+  { "name": "默认值与时长", "text": "<bio_act/><bio_act pattern=\"wave\" ms=\"2000\" target=\"whoop-5.0\" />",
+    "acts": [{ "target": "*", "output": "Vibrate", "pattern": "pulse", "intensity": 0.5, "durationMs": null }, { "target": "whoop-5.0", "output": "Vibrate", "pattern": "wave", "intensity": 0.5, "durationMs": 2000 }], "errors": [] },
+  { "name": "超过 3 个", "text": "<bio_act/><bio_act/><bio_act/><bio_act/>",
+    "acts": [{ "target": "*", "output": "Vibrate", "pattern": "pulse", "intensity": 0.5, "durationMs": null }, { "target": "*", "output": "Vibrate", "pattern": "pulse", "intensity": 0.5, "durationMs": null }, { "target": "*", "output": "Vibrate", "pattern": "pulse", "intensity": 0.5, "durationMs": null }], "errors": ["TOO_MANY"] },
+  { "name": "非法值", "text": "<bio_act output=\"Tickle\"/><bio_act pattern=\"spin\" intensity=\"3\" ms=\"-5\"/>",
+    "acts": [{ "target": "*", "output": "Vibrate", "pattern": "pulse", "intensity": 1, "durationMs": null }], "errors": ["BAD_OUTPUT", "BAD_PATTERN", "BAD_INTENSITY", "BAD_MS"] }
+]

@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
 import { parseBlock } from './block.mjs';
+import { parseBioActs, patternFrames, PATTERNS } from './bio-act.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 let failed = 0;
@@ -39,6 +40,18 @@ for (const f of readdirSync(join(bdir, 'invalid')).filter((x) => x.endsWith('.tx
   if (r.ok) fail(`invalid/${f} 应失败但通过了`);
   else if (missing.length) fail(`invalid/${f} 缺少预期错误 ${missing.join(', ')}\n${show(r)}`);
   else pass(`invalid/${f} → ${[...codes].join(', ')}`);
+}
+
+// <bio_act/> 样例与模式帧
+for (const c of JSON.parse(readFileSync(join(ROOT, 'fixtures/bio-act/replies.json'), 'utf8'))) {
+  const r = parseBioActs(c.text);
+  const same = JSON.stringify(r.acts) === JSON.stringify(c.acts) && JSON.stringify(r.errors.map((e) => e.code)) === JSON.stringify(c.errors);
+  same ? pass(`bio-act/${c.name}`) : fail(`bio-act/${c.name}\n    得到 ${JSON.stringify(r)}`);
+}
+for (const p of PATTERNS) {
+  const f = patternFrames(p, 0.8, 2000);
+  const ok = f.length >= 2 && f[f.length - 1][1] === 0 && f.every(([t, v], i) => v >= 0 && v <= 0.8 && (i === 0 || t >= f[i - 1][0]));
+  ok ? pass(`bio-act/帧 ${p}`) : fail(`bio-act/帧 ${p} 不合规：${JSON.stringify(f)}`);
 }
 
 // JSON Schema

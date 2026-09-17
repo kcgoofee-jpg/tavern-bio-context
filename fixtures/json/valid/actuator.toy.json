@@ -1,0 +1,1 @@
+{ "outputs": ["Vibrate"], "patterns": ["pulse","double","heartbeat","wave","long"], "levels": true, "maxIntensity": 0.6, "maxDurationMs": 10000, "minIntervalMs": 1500, "device": "Virtual Vibrator", "via": "intiface" }

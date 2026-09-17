@@ -12,7 +12,7 @@
 - 注入开关与隐私告知；后台生成不得带注入块。
 - 日级行 `sleep` / `day` / `workout` / `trend`，事件与设备行 `wear` / `button` / `motion` / `sensor`，L2 敏感行 `body` / `cycle` / `journal`；尾部 `warn:` 行登记。
 - 敏感分级 L0 / L1 / L2；`bio.daily`、`bio.sensor`、`bio.sensitive`；总线 `setDaily` / `getDaily` / `setExposure` 与新 kind。
-- 输出接口：`registerActuator` / `actuate` / `stop`、`<bio_act/>`。
+- 输出接口：`registerActuator(id, caps, handler)` / `actuate` / `stop` / `actuators`、`<bio_act/>`（`intensity`、`ms` 属性）；强度帧 `patternFrames()`；模式 `wave`；执行器 `minIntervalMs`、`levels`、`via`；用户强度上限；Intiface / buttplug v4（回退 v3）适配说明。参考实现 `tools/bio-act.mjs`，Schema `bio-act`、`actuator`。
 - 可检查的规范：`docs/conformance-zh.md`、`schema/block.abnf`、三份 JSON Schema、`fixtures/`、`tools/block.mjs`、`tools/validate.mjs`。
 
 ### Changed

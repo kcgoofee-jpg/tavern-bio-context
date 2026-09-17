@@ -1,0 +1,1 @@
+{ "output": "Vibrate", "pattern": "wave", "intensity": 0.35, "durationMs": 3000, "reason": "char-touch" }

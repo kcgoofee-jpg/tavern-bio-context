@@ -190,60 +190,90 @@ tbc.on('bio:diagnostics', fn)   // problems 有变化时发出，detail 同上
 
 ## 5. 输出接口（新增）：触觉 / 振动反馈
 
-v0.2 只规定了执行器怎样**报告状态**（`registerContext`）和怎样**跟随读者**（订阅）。v0.3 增加一个统一的**触发接口**，让角色、卡片脚本、扩展能让设备动起来，第一个落地对象是手环振动。
+v0.2 只规定了执行器怎样**报告状态**（`registerContext`）和怎样**跟随读者**（订阅）。v0.3 增加一个统一的**触发接口**，让角色、卡片脚本、扩展能让设备动起来：手环振动、玩具（经 Intiface / buttplug）、其他执行器用同一套调用。参考实现：`tools/bio-act.mjs`；Schema：`schema/bio-act.schema.json`（动作）、`schema/actuator.schema.json`（能力）。
 
 ### 5.1 登记与触发
 
 ```js
 tbc.registerActuator('whoop-5.0', {
-  outputs: ['Vibrate'],                     // buttplug v4 词汇（device-interface-zh.md §6）
+  outputs: ['Vibrate'],                     // buttplug v4 OutputType（device-interface-zh.md §6）
   patterns: ['pulse', 'double', 'triple', 'long', 'heartbeat'],
-  maxIntensity: 1,                          // 手环无强度调节时固定为 1
+  levels: false,                            // 能否按强度连续调节；手环为 false
+  maxIntensity: 1,
   maxDurationMs: 3000,
+  minIntervalMs: 10000,                     // 同一执行器两次触发的最小间隔；缺省 10000
   device: 'whoop-5.0',
-});
+  via: 'page',                              // page | bridge | intiface | other
+}, handler);                                // handler(job) → Promise；job 见 5.2
 
-const r = await tbc.actuate('whoop-5.0', { output: 'Vibrate', pattern: 'double', reason: 'char-tap' });
-// r = { ok: true } | { ok: false, refused: 'disabled' | 'rate-limit' | 'quiet-hours' | 'not-worn' | 'unknown-target' }
-//   | { ok: true, clipped: { durationMs: 3000 } }
+const r = await tbc.actuate('*', { output: 'Vibrate', pattern: 'wave', intensity: 0.4, durationMs: 3000, reason: 'char-touch' }, { source: 'card-script' });
+// r = { ok: true, results: [{ id, ok: true, clipped?: {...}, fallback?: 'pulse' }] }
+//   | { ok: false, refused: 'disabled' | 'rate-limit' | 'quiet-hours' | 'not-worn' | 'sleeping' | 'unknown-target' | 'unsupported' }
 
 tbc.stop();                                 // 全局停止；tbc.stop('whoop-5.0') 只停一个
-tbc.actuators();                            // 已登记的执行器及能力
+tbc.actuators();                            // [{ id, ...caps, busy }]
+tbc.unregisterActuator(id);
 ```
 
-- `target` 可用 `'*'`：发给所有支持该 `output` 的执行器。
-- `pattern` 是抽象名，由实现映射到设备自己的振动模式；设备没有的 pattern 退回 `pulse` 并在结果里写 `fallback`。
-- 每次触发产生事件 `bio:actuate`，detail `{ t, target, action, result, source }`；实现把最近一次触发写进块：`device: whoop-5.0 vibrate double @read 41s (char-tap)`。
+- `target` 可用 `'*'`：发给所有支持该 `output` 的执行器；每个执行器单独判断安全规则，结果逐个列出。
+- `intensity` 0–1，缺省 0.5；超过执行器 `maxIntensity` 或用户上限时裁到上限，并在结果里写 `clipped`。
+- `durationMs` 只对 `long` / `heartbeat` / `wave` 有意义；超过 `maxDurationMs` 时裁剪。
+- `pattern` 是抽象名：`pulse`（轻点一下）、`double`、`triple`、`long`（持续）、`heartbeat`（像心跳，约 900 ms 一拍）、`wave`（由弱到强再回落）。执行器没有的模式退回 `pulse`，结果里写 `fallback`。
+- 每次触发产生事件 `bio:actuate`，detail `{ t, target, action, results, source }`；实现把最近一次触发写进块：`device: whoop-5.0 vibrate double @read 41s (char-tap)`。
 
-### 5.2 模型侧写法（可选约定）
+### 5.2 执行：强度帧
 
-回复里出现下面的标签时，由接入脚本解析并调用 `tbc.actuate`，显示前用正则隐藏标签：
+实现把模式展开成**帧** `[[毫秒偏移, 强度], …]`（最后一帧强度为 0），交给 `handler`：
+
+```js
+handler({ action, frames, deadline })   // deadline = 开始时间 + 帧长 + 余量；到点必须回到 0
+```
+
+- 能调强度的执行器（`levels: true`）按帧依次设定强度；只有开关或固定模式的执行器（手环）可以忽略帧，直接用 `action.pattern` 映射到设备自带模式。
+- 帧的形状由参考实现 `patternFrames()` 规定，实现应与之一致（同样输入同样输出）。
+- 实现自己也要有看门狗：`deadline` 过了执行器还没回 0，就发停止。
+
+### 5.3 模型侧写法（可选约定）
+
+回复里出现下面的标签时，由接入脚本在**用户可见生成结束后**解析并调用 `tbc.actuate`，显示前用正则隐藏标签：
 
 ```
-<bio_act target="whoop-5.0" output="Vibrate" pattern="double"/>
+<bio_act target="*" output="Vibrate" pattern="wave" intensity="0.4" ms="3000"/>
 ```
 
-规则：每条回复最多 3 个；只在正文生成完成后执行；`backstage` 时这是作者手段，角色不点破；`in-story` 时写成角色的动作（"轻轻点了点你的手腕"）；`device-aware` 时角色可以明说是自己让手环震的。是否在预设 / 世界书里教模型使用，由上层决定。
+- 属性都可省略：`target` 缺省 `*`，`output` 缺省 `Vibrate`，`pattern` 缺省 `pulse`，`intensity` 缺省 0.5，`ms` 只对持续类模式有效。
+- 每条回复最多 3 个，多出的丢弃；按出现顺序排队，同一执行器之间至少隔 `minIntervalMs`。
+- 后台生成、被中途停止的生成、滑动到旧页，都不执行。
+- `backstage` 时这是作者手段，角色不点破；`in-story` 时写成角色的动作（"轻轻点了点你的手腕"）；`device-aware` 时角色可以明说是自己让设备动的。是否在预设 / 世界书里教模型使用，由上层决定。
 
-### 5.3 安全（在 device-interface-zh.md §7 之上）
+### 5.4 安全（在 device-interface-zh.md §7 之上）
 
 1. **默认关闭**：用户显式开启"允许触发振动"后，`actuate` 才生效；否则返回 `refused: 'disabled'`。
-2. **频率上限**：同一目标两次触发间隔 ≥ 10 秒；单轮回复 ≤ 3 次。
-3. **勿扰**：尊重用户设置的勿扰时段；读者处于睡眠（`sleep` 进行中）时拒绝，除非用户单独允许。
-4. **没戴不振**：`wear` 为摘下时返回 `refused: 'not-worn'`。
-5. **全局停止**必须可一键触发；页面卸载 / 桥断线即停。
-6. 模型可见文本里不出现设备序列号、令牌。
+2. **用户上限**：用户可设强度上限（建议缺省 0.6），实现不得超过。
+3. **频率上限**：同一执行器两次触发间隔 ≥ 它的 `minIntervalMs`（手环缺省 10 秒）；单条回复 ≤ 3 次。
+4. **勿扰**：尊重用户设置的勿扰时段；读者处于睡眠时拒绝（`sleeping`），除非用户单独允许。
+5. **没戴不振**：可穿戴执行器在 `wear` 为摘下时返回 `not-worn`。
+6. **全局停止**必须可一键触发；页面卸载、桥断线、Intiface 断线即停。
+7. 模型可见文本里不出现设备序列号、令牌、Intiface 地址。
 
-### 5.4 本机桥消息
+### 5.5 本机桥消息
 
 ```json
-{ "cmd": "actuate", "target": "whoop-5.0", "action": { "output": "Vibrate", "pattern": "double" }, "source": "card-script" }
+{ "cmd": "actuate", "target": "whoop-5.0", "action": { "output": "Vibrate", "pattern": "double" }, "frames": [[0, 1], [180, 0], [320, 1], [500, 0]], "source": "card-script" }
 { "cmd": "stop" }
-{ "event": "bio:actuate", "detail": { "t": 1789600000000, "target": "whoop-5.0", "action": { … }, "result": { "ok": true } } }
+{ "event": "bio:actuate", "detail": { "t": 1789600000000, "target": "whoop-5.0", "action": { … }, "results": [ { "id": "whoop-5.0", "ok": true } ] } }
 { "event": "bio:actuators", "detail": [ { "id": "whoop-5.0", "outputs": ["Vibrate"], "patterns": [ … ] } ] }
 ```
 
-### 5.5 WHOOP 实现备注（非规范）
+### 5.6 Intiface / buttplug 适配（非规范）
+
+- 连接 Intiface Central 的 WebSocket（缺省 `ws://127.0.0.1:12345`），握手 `RequestServerInfo`（`ProtocolVersionMajor: 4`）；服务器不支持时退回 v3（`MessageVersion: 3`）。
+- v4：每个带 `Output` 的设备特性登记为一个执行器，id 为 `intiface:<设备序号>:<特性序号>`；强度 × `Value` 上界取整后发 `OutputCmd`；停止用 `StopCmd`。收到新的 `DeviceList` 时对比增删。
+- v3：`DeviceMessages.ScalarCmd` 的每一项登记为执行器；强度直接作 `Scalar` 发 `ScalarCmd`；停止用 `StopDeviceCmd` / `StopAllDevices`；监听 `DeviceAdded` / `DeviceRemoved`。
+- `MaxPingTime` 大于 0 时按一半间隔发 `Ping`。
+- Intiface 同一时间通常只接受一个客户端：用户已用别的酒馆 Intiface 插件时，二者只能开一个。
+
+### 5.7 WHOOP 实现备注（非规范）
 
 WHOOP 4.0：`RUN_HAPTICS_PATTERN`（0x4F）`[patternId, loops, 0, 0, 0]`。WHOOP 5.0 / MG：独立的 0x13 命令，体 `[0x01, 47, 152, 0×8, loops]`（来源：MIT 许可的 OpenStrap/protocol `cmdBuzzGen5Maverick`，本机未实测）。`pattern` 映射由实现决定。
 
@@ -257,5 +287,5 @@ WHOOP 4.0：`RUN_HAPTICS_PATTERN`（0x4F）`[patternId, loops, 0, 0, 0]`。WHOOP
 ## 7. 待定
 
 - `trend` 的数据能否实时拿到，取决于 whoopdesk 的"只读不删"实测。
-- 振动 pattern 的抽象名单是否再扩（如 `ramp`、`sos`），等第二个执行器接入时定。
+- 振动 pattern 的抽象名单：v0.3 已加 `wave`（第二类执行器：Intiface 玩具）；`sos` 等再有需要时定。
 - `cycle` 的来源：WHOOP API 当前没有周期数据端点，先留格式。

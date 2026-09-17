@@ -1,0 +1,1 @@
+{ "outputs": ["Vibrate"], "patterns": ["pulse","double","triple","long","heartbeat"], "levels": false, "maxIntensity": 1, "maxDurationMs": 3000, "minIntervalMs": 10000, "device": "whoop-5.0", "via": "page" }
