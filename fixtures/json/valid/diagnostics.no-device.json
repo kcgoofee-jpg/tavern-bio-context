@@ -2,7 +2,7 @@
  "environment":{"bluetooth":true,"secure_context":true,"host":"sillytavern-1.18.0"},
  "device":{"connected":false,"name":null,"transport":null,"cadence_ms":null,"rr":null,"last_sample_age_ms":null,"battery":null},
  "mode":{"value":"in-story","source":"card"},
- "card":{"mode_hint":"in-story","perceiver":["斯琪娅"]},
+ "card":{"mode_hint":"in-story","perceiver":["小影"]},
  "injection":{"enabled":true,"last_at":null,"last_trigger":null,"background_skipped":0},
  "interpretation":{"guide_active":true},
  "problems":[{"code":"NO_DEVICE","severity":"warn","message":"没有连接心率设备","hint":"点输入框旁的徽章连接；设备需开启心率广播"}]}

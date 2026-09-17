@@ -1,4 +1,4 @@
-<bio_context v="0.3" mode="backstage" source="heartlink" device="whoop-4b11223344" perceiver="斯琪娅">
+<bio_context v="0.3" mode="backstage" source="heartlink" device="whoop-4b11223344" perceiver="小影">
 sent: 20:31:05
 baseline: n/a (session too short)
 history: n/a
