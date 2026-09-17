@@ -1,7 +1,8 @@
 // TBC v0.3 §5 参考实现：解析回复里的 <bio_act/>，并把抽象振动模式展开成强度帧。
 // 实现可以有自己的写法，但对同样的输入应给出同样的结果（heartlink 的一致性测试会比对）。
 
-export const OUTPUTS = ['Vibrate', 'Rotate', 'Oscillate', 'Constrict', 'Spray', 'Temperature', 'Led', 'Position', 'HwPositionWithDuration', 'Estim'];
+// '*' = 任意输出：执行器有什么就用什么（振动、往复、旋转、收缩、抽动……）；不写 output 时就是它
+export const OUTPUTS = ['*', 'Vibrate', 'Rotate', 'Oscillate', 'Constrict', 'Spray', 'Temperature', 'Led', 'Position', 'HwPositionWithDuration', 'Estim'];
 export const PATTERNS = ['pulse', 'double', 'triple', 'long', 'heartbeat', 'wave'];
 export const MAX_PER_REPLY = 3;
 export const DEFAULT_INTENSITY = 0.5;
@@ -23,7 +24,7 @@ export function parseBioActs(text) {
     while ((x = ar.exec(m[1]))) a[x[1]] = x[2];
     const act = {
       target: a.target || '*',
-      output: a.output || 'Vibrate',
+      output: a.output || '*',
       pattern: a.pattern || 'pulse',
       intensity: num(a.intensity) ?? DEFAULT_INTENSITY,
       durationMs: num(a.ms),

@@ -3,13 +3,51 @@
   "$id": "https://github.com/kcgoofee-jpg/tavern-bio-context/schema/bio-act.schema.json",
   "title": "TBC v0.3 actuation request (tbc.actuate action)",
   "type": "object",
-  "required": ["output"],
+  "required": [
+    "output"
+  ],
   "additionalProperties": false,
   "properties": {
-    "output": { "enum": ["Vibrate", "Rotate", "Oscillate", "Constrict", "Spray", "Temperature", "Led", "Position", "HwPositionWithDuration", "Estim"] },
-    "pattern": { "enum": ["pulse", "double", "triple", "long", "heartbeat", "wave"], "default": "pulse" },
-    "intensity": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.5 },
-    "durationMs": { "type": "integer", "minimum": 1 },
-    "reason": { "type": "string", "maxLength": 64 }
+    "output": {
+      "enum": [
+        "*",
+        "Vibrate",
+        "Rotate",
+        "Oscillate",
+        "Constrict",
+        "Spray",
+        "Temperature",
+        "Led",
+        "Position",
+        "HwPositionWithDuration",
+        "Estim"
+      ],
+      "description": "'*' 表示任意输出（执行器有什么就用什么）"
+    },
+    "pattern": {
+      "enum": [
+        "pulse",
+        "double",
+        "triple",
+        "long",
+        "heartbeat",
+        "wave"
+      ],
+      "default": "pulse"
+    },
+    "intensity": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "default": 0.5
+    },
+    "durationMs": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "reason": {
+      "type": "string",
+      "maxLength": 64
+    }
   }
 }

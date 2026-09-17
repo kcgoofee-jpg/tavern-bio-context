@@ -215,7 +215,8 @@ tbc.actuators();                            // [{ id, ...caps, busy }]
 tbc.unregisterActuator(id);
 ```
 
-- `target` 可用 `'*'`：发给所有支持该 `output` 的执行器；每个执行器单独判断安全规则，结果逐个列出。
+- `target` 可用 `'*'`：发给所有支持该 `output` 的执行器；`output` 也可用 `'*'`：不限输出类型。每个执行器单独判断安全规则，结果逐个列出。
+- 强度到设备值的换算：振动、往复、收缩、温度等取 `强度 × 值域上界` 向下取整；旋转只用正方向；按位置控制的抽动类（`HwPositionWithDuration`、`Position`）把强度换算成往返速度（强度 1 约 0.4 秒一个来回，强度接近 0 约 1.5 秒），强度 0 回到起点并停。
 - `intensity` 0–1，缺省 0.5；超过执行器 `maxIntensity` 或用户上限时裁到上限，并在结果里写 `clipped`。
 - `durationMs` 只对 `long` / `heartbeat` / `wave` 有意义；超过 `maxDurationMs` 时裁剪。
 - `pattern` 是抽象名：`pulse`（轻点一下）、`double`、`triple`、`long`（持续）、`heartbeat`（像心跳，约 900 ms 一拍）、`wave`（由弱到强再回落）。执行器没有的模式退回 `pulse`，结果里写 `fallback`。
@@ -241,7 +242,7 @@ handler({ action, frames, deadline })   // deadline = 开始时间 + 帧长 + �
 <bio_act target="*" output="Vibrate" pattern="wave" intensity="0.4" ms="3000"/>
 ```
 
-- 属性都可省略：`target` 缺省 `*`，`output` 缺省 `Vibrate`，`pattern` 缺省 `pulse`，`intensity` 缺省 0.5，`ms` 只对持续类模式有效。
+- 属性都可省略：`target` 缺省 `*`，`output` 缺省 `*`（任意输出：振动、往复、旋转、收缩、抽动都按同一个强度动），`pattern` 缺省 `pulse`，`intensity` 缺省 0.5，`ms` 只对持续类模式有效。
 - 每条回复最多 3 个，多出的丢弃；按出现顺序排队，同一执行器之间至少隔 `minIntervalMs`。
 - 后台生成、被中途停止的生成、滑动到旧页，都不执行。
 - `backstage` 时这是作者手段，角色不点破；`in-story` 时写成角色的动作（"轻轻点了点你的手腕"）；`device-aware` 时角色可以明说是自己让设备动的。是否在预设 / 世界书里教模型使用，由上层决定。
