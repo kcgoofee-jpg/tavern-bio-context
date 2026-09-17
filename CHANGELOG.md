@@ -15,7 +15,7 @@
 - 输出接口：`registerActuator(id, caps, handler)` / `actuate` / `stop` / `actuators`、`<bio_act/>`（`intensity`、`ms` 属性）；强度帧 `patternFrames()`；模式 `wave`；执行器 `minIntervalMs`、`levels`、`via`；用户强度上限；Intiface / buttplug v4（回退 v3）适配说明。参考实现 `tools/bio-act.mjs`，Schema `bio-act`、`actuator`。
 - 强度档位 `slow-burn`（慢热）/ `frenzy`（狂暴）与可自定义参数（强度下限、各模式缺省时长、最小间隔、每条回复上限 ≤ 5）；参考实现 `resolveSettings` / `liftIntensity`，`patternFrames` / `parseBioActs` 增加可选设置参数（§5.8）。
 - 扩展行 `haptics(来源): off | on | cap N% | profile …`（L0，§5.8）。
-- 设备层要求：强度 0 即停止、保活 `keepaliveMs`、互斥组 `group`、加热类必须有时长上限、`nativePatterns`；`via` 增加 `mcp`（§5.9）；MCP 桥说明（§5.10）。
+- 设备层要求：强度 0 即停止、保活 `keepaliveMs`、互斥组 `group`、加热类必须有时长上限、有风险的输出（`Temperature` / `Estim` / `Spray`）不属于 `output="*"`、`nativePatterns`；`via` 增加 `mcp`（§5.9）；MCP 桥说明（§5.10）。
 - 安全：停止不经过模型；安全词为可选且缺省关闭（§5.4）。
 - 社区设备实测页 `tools/device-test.html` 与报告说明。
 - 可检查的规范：`docs/conformance-zh.md`、`schema/block.abnf`、三份 JSON Schema、`fixtures/`、`tools/block.mjs`、`tools/validate.mjs`。

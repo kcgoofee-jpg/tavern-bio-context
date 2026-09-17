@@ -3,6 +3,8 @@
 
 // '*' = 任意输出：执行器有什么就用什么（振动、往复、旋转、收缩、抽动……）；不写 output 时就是它
 export const OUTPUTS = ['*', 'Vibrate', 'Rotate', 'Oscillate', 'Constrict', 'Spray', 'Temperature', 'Led', 'Position', 'HwPositionWithDuration', 'Estim'];
+// §5.9：有风险的输出。output="*"（含不写 output）不会驱动它们，必须点名
+export const RISKY_OUTPUTS = ['Temperature', 'Estim', 'Spray'];
 export const PATTERNS = ['pulse', 'double', 'triple', 'long', 'heartbeat', 'wave'];
 export const MAX_PER_REPLY = 3;
 export const DEFAULT_INTENSITY = 0.5;
