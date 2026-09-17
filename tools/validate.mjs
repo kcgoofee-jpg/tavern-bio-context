@@ -9,7 +9,7 @@ import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
 import { parseBlock, compareVersions, effectiveView } from './block.mjs';
 import * as sanitize from './sanitize.mjs';
-import { parseBioActs, patternFrames, PATTERNS, PROFILES, resolveSettings, liftIntensity, hideBioActs } from './bio-act.mjs';
+import { parseBioActs, patternFrames, PATTERNS, PROFILES, resolveSettings, liftIntensity, hideBioActs, NATIVE_PATTERN } from './bio-act.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 let failed = 0;
@@ -82,6 +82,11 @@ for (const f of readdirSync(join(bdir, 'invalid')).filter((x) => x.endsWith('.tx
     ['版本：0.3 = 0.3.0', compareVersions('0.3', '0.3.0') === 0],
     ['版本：0.2 < 0.3', compareVersions('0.2', '0.3') === -1],
     ['视图：view 优先于 mode', effectiveView({ mode: 'character', view: 'device-aware' }) === 'device-aware'],
+    ['v0.3 块里的 actuator / native 行只给未知行警告', (() => {
+      const r = parseBlock(readFileSync(join(ROOT, 'fixtures/blocks/valid/13-v04-actuator-native.txt'), 'utf8')
+        .replace('v="0.4"', 'v="0.3"').replace(/ stream="no" lag="4s"/, '').replace(/ \| age 12m \| noise ±3/, '').replace(/ \| stop by reader.*$/m, ''));
+      return r.ok && r.warnings.filter((w) => w.code === 'LINE_UNKNOWN').length === 3;
+    })()],
     ['视图：旧 mode 换算', effectiveView({ mode: 'author' }) === 'backstage' && effectiveView({ mode: 'character' }) === 'in-story'],
   ];
   for (const [name, ok] of cases) ok ? pass(`block/${name}`) : fail(`block/${name}`);
@@ -118,6 +123,8 @@ for (const p of PATTERNS) {
     ['自定义：覆盖默认时长', patternFrames('long', 1, null, resolveSettings('slow-burn', { defaultMs: { long: 8000 } })).at(-1)[0] === 8000],
     ['自定义：每条回复上限最多 5', resolveSettings('frenzy', { maxPerReply: 9 }).maxPerReply === 5 && parseBioActs('<bio_act/>'.repeat(6), { maxPerReply: 5 }).acts.length === 5],
     ['显示时隐藏全部标签（含思维链里的）', hideBioActs('<think><bio_act/></think>她笑了<bio_act pattern="wave"/>。') === '<think></think>她笑了。'],
+    ['v0.4 直通：帧只作包络，0 仍是停止', JSON.stringify(patternFrames(NATIVE_PATTERN, 0.5, null, resolveSettings('steady'))) === JSON.stringify([[0, 0.625], [8000, 0]]) && patternFrames(NATIVE_PATTERN, 0, 3000, resolveSettings('max'))[0][1] === 0],
+    ['v0.4 直通：native 不在抽象模式表里', !PATTERNS.includes(NATIVE_PATTERN)],
     ['未知档位按慢热', resolveSettings('turbo').profile === 'slow-burn' && Object.keys(PROFILES).join() === 'slow-burn,steady,frenzy,max'],
   ];
   for (const [name, ok] of cases) ok ? pass(`bio-act/${name}`) : fail(`bio-act/${name}`);

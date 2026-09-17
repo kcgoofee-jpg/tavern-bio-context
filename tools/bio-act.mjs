@@ -1,4 +1,5 @@
 // TBC v0.3 §5 参考实现：解析回复里的 <bio_act/>，并把抽象振动模式展开成强度帧。
+// v0.4 草案 §8：pattern="native" + mode 直通设备自带模式，只在调用方传入执行器能力（opts.actuators）时接受。
 // 实现可以有自己的写法，但对同样的输入应给出同样的结果（heartlink 的一致性测试会比对）。
 
 // '*' = 任意输出：执行器有什么就用什么（振动、往复、旋转、收缩、抽动……）；不写 output 时就是它
@@ -6,6 +7,8 @@ export const OUTPUTS = ['*', 'Vibrate', 'Rotate', 'Oscillate', 'Constrict', 'Spr
 // §5.9：有风险的输出。output="*"（含不写 output）不会驱动它们，必须点名
 export const RISKY_OUTPUTS = ['Temperature', 'Estim', 'Spray'];
 export const PATTERNS = ['pulse', 'double', 'triple', 'long', 'heartbeat', 'wave'];
+// v0.4 草案 §8：设备自带模式直通。不在 PATTERNS 里（抽象模式表与 v0.3 一致）
+export const NATIVE_PATTERN = 'native';
 export const MAX_PER_REPLY = 3;
 export const DEFAULT_INTENSITY = 0.5;
 // 各模式的默认时长（毫秒）；long / heartbeat / wave 可由 ms 指定，pulse / double / triple 固定
@@ -99,13 +102,52 @@ export function parseBioActs(text, opts) {
       durationMs: num(a.ms),
     };
     if (!OUTPUTS.includes(act.output)) { errors.push({ code: 'BAD_OUTPUT', value: act.output }); continue; }
-    if (!PATTERNS.includes(act.pattern)) { errors.push({ code: 'BAD_PATTERN', value: act.pattern, fallback: 'pulse' }); act.pattern = 'pulse'; }
+    if (act.pattern === NATIVE_PATTERN) {
+      // v0.4 §8.4：找不到就跳过，不退回 pulse
+      const r = resolveNative(act.target, act.output, a.mode, opts && opts.actuators);
+      if (r.error) { errors.push({ code: r.error, value: a.mode ?? null }); continue; }
+      act.mode = a.mode;
+      act.native = r.native;
+    } else if (a.mode != null) {
+      errors.push({ code: 'MODE_IGNORED', value: a.mode });
+    }
+    if (act.pattern !== NATIVE_PATTERN && !PATTERNS.includes(act.pattern)) { errors.push({ code: 'BAD_PATTERN', value: act.pattern, fallback: 'pulse' }); act.pattern = 'pulse'; }
     if (!Number.isFinite(act.intensity) || act.intensity < 0 || act.intensity > 1) { errors.push({ code: 'BAD_INTENSITY', value: a.intensity }); act.intensity = Math.min(1, Math.max(0, Number.isFinite(act.intensity) ? act.intensity : DEFAULT_INTENSITY)); }
     if (act.durationMs != null && (!Number.isFinite(act.durationMs) || act.durationMs <= 0)) { errors.push({ code: 'BAD_MS', value: a.ms }); act.durationMs = null; }
     if (acts.length >= limit) { errors.push({ code: 'TOO_MANY', value: acts.length + 1 }); continue; }
     acts.push(act);
   }
   return { acts, errors };
+}
+
+// v0.4 §8.1、§8.4：在执行器列表里找点名的自带模式
+//   actuators：tbc.actuators() 的结果 [{ id, outputs, native: [{ n, name, outputs?, stoppable?, enabled }] }]；
+//   也接受能力原样 [{ id, outputs, nativePatterns: [{ name, … }] }]（序号 = 位置，缺 enabled 视为已开启）
+//   返回 { native: [{ id, n, name, stoppable }] } 或 { error }
+const modesOf = (x) => {
+  const list = Array.isArray(x && x.native) ? x.native : Array.isArray(x && x.nativePatterns) ? x.nativePatterns : null;
+  return list && list.map((m, i) => m && { ...m, n: Number.isInteger(m.n) ? m.n : i + 1 }).filter(Boolean);
+};
+export function resolveNative(target, output, mode, actuators) {
+  if (!Array.isArray(actuators)) return { error: 'NATIVE_NO_CAPS' };
+  if (mode == null || mode === '') return { error: 'NATIVE_NO_MODE' };
+  const byIndex = /^\d{1,2}$/.test(mode);
+  const pool = actuators.map((x) => ({ x, modes: modesOf(x) })).filter((p) => p.modes && (target === '*' || p.x.id === target));
+  if (!pool.length) return { error: 'NATIVE_UNAVAILABLE' };
+  if (byIndex && target === '*' && pool.filter((p) => p.modes.some((m) => m.enabled !== false)).length > 1) return { error: 'NATIVE_TARGET_AMBIGUOUS' };
+  const native = [];
+  let off = false;
+  for (const { x, modes } of pool) {
+    const m = modes.find((k) => (byIndex ? k.n === Number(mode) : k.name === mode));
+    if (!m) continue;
+    if (m.enabled === false) { off = true; continue; }
+    const outs = Array.isArray(m.outputs) && m.outputs.length ? m.outputs : (x.outputs || []);
+    const ok = output === '*' ? outs.some((o) => !RISKY_OUTPUTS.includes(o)) : outs.includes(output);
+    if (!ok) continue;
+    native.push({ id: x.id, n: m.n, name: m.name, stoppable: m.stoppable !== false });
+  }
+  if (!native.length) return { error: off ? 'NATIVE_OFF' : 'NATIVE_UNAVAILABLE' };
+  return { native };
 }
 
 // 模式 → 帧 [[毫秒偏移, 强度 0–1], …]，最后一帧强度必为 0
@@ -137,6 +179,8 @@ export function patternFrames(pattern, intensity, durationMs, opts) {
       out[out.length - 1][1] = 0;
       return out;
     }
+    // v0.4 §8.5：直通时帧只作包络（看门狗与 deadline 用）
+    case 'native': { const ms = durationMs || D.long; return [[0, I], [ms, 0]]; }
     case 'pulse':
     default: return [[0, I], [DEFAULT_MS.pulse, 0]];
   }

@@ -1,0 +1,14 @@
+<bio_context v="0.3" mode="author" view="backstage" source="heartlink" cadence="1s" trigger="normal">
+sent: 22:10:05
+scope: gen, read = previous reply; write, send = this message
+baseline: n/a (no samples yet)
+history: n/a
+gen: n/a (no samples)
+read: n/a (no samples)
+write: n/a (no samples)
+away: none
+send: n/a
+haptics(heartlink): on | cap 100% | profile slow-burn
+feedback(heartlink): stop by reader read @50s (native-unstoppable)
+note: observable record only; phase edges are page events; hr lags seconds; wrist motion lowers confidence
+</bio_context>

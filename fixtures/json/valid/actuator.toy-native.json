@@ -1,0 +1,1 @@
+{"outputs": ["Vibrate"], "levels": true, "maxDurationMs": 60000, "minIntervalMs": 1500, "via": "intiface", "nativePatterns": [{"id": 4, "name": "波浪", "outputs": ["Vibrate"], "levels": true, "map": "wave"}, {"id": 7, "name": "脉冲"}, {"id": 9, "name": "失控", "outputs": ["Vibrate"], "stoppable": false, "maxDurationMs": 60000}]}

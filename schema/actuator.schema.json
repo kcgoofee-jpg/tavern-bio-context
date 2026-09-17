@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/kcgoofee-jpg/tavern-bio-context/schema/actuator.schema.json",
-  "title": "TBC v0.3 actuator capabilities (tbc.registerActuator caps)",
+  "title": "TBC v0.3 actuator capabilities (tbc.registerActuator caps; nativePatterns list form: v0.4 draft)",
   "type": "object",
   "required": [
     "outputs"
@@ -82,24 +82,137 @@
       "description": "设备要求每隔多少毫秒重发一次指令，否则自己停下（v0.3 §5.9）"
     },
     "nativePatterns": {
-      "type": "object",
-      "description": "抽象模式 → 设备自带模式编号或名字（可选，v0.3 §5.9）",
-      "propertyNames": {
-        "enum": [
-          "pulse",
-          "double",
-          "triple",
-          "long",
-          "heartbeat",
-          "wave"
-        ]
-      },
-      "additionalProperties": {
-        "type": [
-          "string",
-          "integer"
-        ]
-      }
+      "description": "设备自带模式。对象写法（v0.3 §5.9）：抽象模式 → 设备模式；列表写法（v0.4 草案 §8.1）：每项一个自带模式，序号 = 位置（从 1 起）",
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "抽象模式 → 设备自带模式编号或名字（v0.3 §5.9）",
+          "propertyNames": {
+            "enum": [
+              "pulse",
+              "double",
+              "triple",
+              "long",
+              "heartbeat",
+              "wave"
+            ]
+          },
+          "additionalProperties": {
+            "type": [
+              "string",
+              "integer"
+            ]
+          }
+        },
+        {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 99,
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "name"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": [
+                  "string",
+                  "integer"
+                ],
+                "description": "设备自己的模式编号或名字，只给驱动用，不进块"
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 8,
+                "pattern": "^[^\\s|()<>]+$",
+                "description": "给模型看的短名"
+              },
+              "outputs": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "enum": [
+                    "Vibrate",
+                    "Rotate",
+                    "Oscillate",
+                    "Constrict",
+                    "Spray",
+                    "Temperature",
+                    "Led",
+                    "Position",
+                    "HwPositionWithDuration",
+                    "Estim"
+                  ]
+                },
+                "description": "缺省 = 执行器的 outputs"
+              },
+              "levels": {
+                "type": "boolean",
+                "default": false,
+                "description": "能否按强度调节"
+              },
+              "stoppable": {
+                "type": "boolean",
+                "default": true,
+                "description": "强度 0 或停止指令能否立即停下"
+              },
+              "maxDurationMs": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "设备自身的最长运行时间；stoppable 为 false 时必填"
+              },
+              "map": {
+                "enum": [
+                  "pulse",
+                  "double",
+                  "triple",
+                  "long",
+                  "heartbeat",
+                  "wave"
+                ],
+                "description": "同时充当哪个抽象模式"
+              }
+            },
+            "if": {
+              "properties": {
+                "stoppable": {
+                  "const": false
+                }
+              },
+              "required": [
+                "stoppable"
+              ]
+            },
+            "then": {
+              "required": [
+                "maxDurationMs",
+                "outputs"
+              ],
+              "not": {
+                "required": [
+                  "map"
+                ]
+              },
+              "properties": {
+                "outputs": {
+                  "items": {
+                    "not": {
+                      "enum": [
+                        "Temperature",
+                        "Estim",
+                        "Spray"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
     },
     "exclusive": {
       "type": "boolean",

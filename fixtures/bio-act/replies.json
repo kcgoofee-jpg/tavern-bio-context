@@ -181,5 +181,243 @@
       }
     ],
     "errors": []
+  },
+  {
+    "name": "v0.4 直通：序号、名字、不可停模式",
+    "text": "她按下了开关。<bio_act target=\"intiface:0:1\" pattern=\"native\" mode=\"1\" intensity=\"0.6\" ms=\"8000\"/><bio_act pattern=\"native\" mode=\"失控\"/>",
+    "opts": {
+      "actuators": [
+        {
+          "id": "intiface:0:1",
+          "outputs": [
+            "Vibrate"
+          ],
+          "native": [
+            {
+              "n": 1,
+              "name": "波浪",
+              "outputs": [
+                "Vibrate"
+              ],
+              "levels": true,
+              "stoppable": true,
+              "enabled": true
+            },
+            {
+              "n": 2,
+              "name": "脉冲",
+              "stoppable": true,
+              "enabled": false
+            },
+            {
+              "n": 3,
+              "name": "失控",
+              "outputs": [
+                "Vibrate"
+              ],
+              "stoppable": false,
+              "maxDurationMs": 60000,
+              "enabled": true
+            }
+          ]
+        },
+        {
+          "id": "page:heater",
+          "outputs": [
+            "Temperature"
+          ],
+          "native": [
+            {
+              "n": 1,
+              "name": "暖",
+              "outputs": [
+                "Temperature"
+              ],
+              "stoppable": true,
+              "enabled": true
+            }
+          ]
+        }
+      ]
+    },
+    "acts": [
+      {
+        "target": "intiface:0:1",
+        "output": "*",
+        "pattern": "native",
+        "intensity": 0.6,
+        "durationMs": 8000,
+        "mode": "1",
+        "native": [
+          {
+            "id": "intiface:0:1",
+            "n": 1,
+            "name": "波浪",
+            "stoppable": true
+          }
+        ]
+      },
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "native",
+        "intensity": 0.5,
+        "durationMs": null,
+        "mode": "失控",
+        "native": [
+          {
+            "id": "intiface:0:1",
+            "n": 3,
+            "name": "失控",
+            "stoppable": false
+          }
+        ]
+      }
+    ],
+    "errors": []
+  },
+  {
+    "name": "v0.4 直通：找不到就跳过，不退回 pulse",
+    "text": "<bio_act pattern=\"native\" mode=\"9\" target=\"intiface:0:1\"/><bio_act pattern=\"native\" mode=\"2\" target=\"intiface:0:1\"/><bio_act pattern=\"native\"/><bio_act pattern=\"native\" mode=\"1\"/><bio_act pattern=\"native\" mode=\"暖\"/><bio_act pattern=\"native\" mode=\"暖\" output=\"Temperature\"/>",
+    "opts": {
+      "actuators": [
+        {
+          "id": "intiface:0:1",
+          "outputs": [
+            "Vibrate"
+          ],
+          "native": [
+            {
+              "n": 1,
+              "name": "波浪",
+              "outputs": [
+                "Vibrate"
+              ],
+              "levels": true,
+              "stoppable": true,
+              "enabled": true
+            },
+            {
+              "n": 2,
+              "name": "脉冲",
+              "stoppable": true,
+              "enabled": false
+            },
+            {
+              "n": 3,
+              "name": "失控",
+              "outputs": [
+                "Vibrate"
+              ],
+              "stoppable": false,
+              "maxDurationMs": 60000,
+              "enabled": true
+            }
+          ]
+        },
+        {
+          "id": "page:heater",
+          "outputs": [
+            "Temperature"
+          ],
+          "native": [
+            {
+              "n": 1,
+              "name": "暖",
+              "outputs": [
+                "Temperature"
+              ],
+              "stoppable": true,
+              "enabled": true
+            }
+          ]
+        }
+      ]
+    },
+    "acts": [
+      {
+        "target": "*",
+        "output": "Temperature",
+        "pattern": "native",
+        "intensity": 0.5,
+        "durationMs": null,
+        "mode": "暖",
+        "native": [
+          {
+            "id": "page:heater",
+            "n": 1,
+            "name": "暖",
+            "stoppable": true
+          }
+        ]
+      }
+    ],
+    "errors": [
+      "NATIVE_UNAVAILABLE",
+      "NATIVE_OFF",
+      "NATIVE_NO_MODE",
+      "NATIVE_TARGET_AMBIGUOUS",
+      "NATIVE_UNAVAILABLE"
+    ]
+  },
+  {
+    "name": "v0.4 直通：没传执行器能力时跳过；mode 用在普通模式上被忽略",
+    "text": "<bio_act pattern=\"native\" mode=\"1\"/><bio_act pattern=\"wave\" mode=\"1\"/>",
+    "acts": [
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "wave",
+        "intensity": 0.5,
+        "durationMs": null
+      }
+    ],
+    "errors": [
+      "NATIVE_NO_CAPS",
+      "MODE_IGNORED"
+    ]
+  },
+  {
+    "name": "v0.4 直通：只有一个执行器时序号可配 target=*；能力原样也可用",
+    "text": "<bio_act pattern=\"native\" mode=\"2\" output=\"Vibrate\"/>",
+    "opts": {
+      "actuators": [
+        {
+          "id": "intiface:0:1",
+          "outputs": [
+            "Vibrate"
+          ],
+          "nativePatterns": [
+            {
+              "id": 4,
+              "name": "波浪"
+            },
+            {
+              "id": 7,
+              "name": "脉冲"
+            }
+          ]
+        }
+      ]
+    },
+    "acts": [
+      {
+        "target": "*",
+        "output": "Vibrate",
+        "pattern": "native",
+        "intensity": 0.5,
+        "durationMs": null,
+        "mode": "2",
+        "native": [
+          {
+            "id": "intiface:0:1",
+            "n": 2,
+            "name": "脉冲",
+            "stoppable": true
+          }
+        ]
+      }
+    ],
+    "errors": []
   }
 ]

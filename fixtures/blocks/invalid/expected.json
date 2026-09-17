@@ -138,5 +138,24 @@
       "HRV_QUALITY"
     ],
     "reader": "ok"
+  },
+  "20-v04-actuator-native.txt": {
+    "errors": [
+      "ACTUATOR_LOW_WRONG",
+      "ACTUATOR_BATTERY_RANGE",
+      "ACTUATOR_NAME",
+      "LINE_DUP",
+      "LINE_ORDER",
+      "NATIVE_ORDER",
+      "LINE_SYNTAX",
+      "NATIVE_HAPTICS_OFF"
+    ],
+    "reader": "ok"
+  },
+  "21-v03-native-unstoppable.txt": {
+    "errors": [
+      "LINE_SYNTAX"
+    ],
+    "reader": "ok"
   }
 }

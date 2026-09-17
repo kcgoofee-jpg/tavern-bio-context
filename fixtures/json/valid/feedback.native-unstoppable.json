@@ -1,0 +1,1 @@
+{"t": 1789600000000, "from": "reader", "type": "stop", "value": null, "target": "intiface:0:1", "act": {"key": "r12", "i": 1, "afterMs": 30000}, "reason": "native-unstoppable"}

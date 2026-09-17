@@ -92,6 +92,8 @@
 | `feedback`（读者对设备的操作与上一条回复动作的执行结果，§5.12） | L0 | 0.3 |
 | 与 kind 同名的信号行（如 `pressure(...)`；`ppg` 除外） | 视信号 | 0.2 |
 | `stream`（流式显示段） | L1 | 0.4 草案 |
+| `actuator`（执行器电量与连接，每个执行器一行，≤ 4 行） | L0 | 0.4 草案 |
+| `native`（用户开启的设备自带模式，每个执行器一行） | L0 | 0.4 草案 |
 
 尾部：`series`(可选) → `note`(必须，固定句) → `warn`(可选，可多行，0.3 登记；生产者用它提示数据可能不完整)。
 
@@ -116,6 +118,8 @@
 | `history` | `read-peak-rel` | 0.4 草案 |
 | `baseline` | `age`、`noise`、`changed` | 0.4 草案 |
 | `stream` | `pos`，以及相位行的 `cov`、`rr-loss`、`hrv`、`flag:`、`mean`、`above` | 0.4 草案 |
+| `actuator` | `battery`（`N%`、可带 `low`，或 `n/a`）、`charging`、`link` | 0.4 草案 |
+| `feedback` | 备注 `native-unstoppable`（只用于 `stop by …`） | 0.4 草案 |
 
 ### 4.5 基线方法（`baseline` 括号里）
 
@@ -162,7 +166,7 @@
 | `SCOPE_TRIGGER`、`REPLAY_MISSING`、`SWIPE_NEW_MESSAGE`、`IMPERSONATE_WRITE`、`READPOS_FORBIDDEN`、`READPOS_WITHOUT_PEAK` | v0.3 §1.3 | 警告 |
 | `HR_RANGE`、`PEAK_OUT_OF_RANGE`、`PEAK_LOW_COVERAGE`、`PEAK_SHORT_PHASE`、`HRV_SHORT_WINDOW`、`HRV_QUALITY`、`SPARSE_FIELD` | v0.3 §1.4、§2.8 | 警告 |
 | `FEEDBACK_COUNT`、`FEEDBACK_SEND_AT`、`FEEDBACK_TOO_MANY` | v0.3 §5.12 | 警告 |
-| `BASELINE_METHOD_DEPRECATED`、`BASELINE_AGE_MISSING`、`BASELINE_MANUAL_INFO`、`CARRYOVER_*`、`TAILMAX_*`、`STREAM_*` | v0.4 草案 | 警告 |
+| `BASELINE_METHOD_DEPRECATED`、`BASELINE_AGE_MISSING`、`BASELINE_MANUAL_INFO`、`CARRYOVER_*`、`TAILMAX_*`、`STREAM_*`、`ACTUATOR_*`、`NATIVE_*` | v0.4 草案 | 警告 |
 
 只给警告的代码：`HEADER_UNKNOWN`、`VIEW_MISSING`、`SCOPE_MISSING`、`LINE_UNKNOWN`、`LINE_IN_FIXED_ZONE`、`LINE_ORDER_UNKNOWN`、`SEG_UNKNOWN`、`FLAG_UNKNOWN`、`DATE_SHORT`、`CPS_NOT_INTEGER`、`FEEDBACK_REF_LEGACY`、`HRV_IN_WRITE`、`AWAY_ABSOLUTE`，以及 v0.3 里的 `BASELINE_METHOD_DEPRECATED`。
 

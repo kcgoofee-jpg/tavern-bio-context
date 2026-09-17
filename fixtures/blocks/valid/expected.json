@@ -4,5 +4,6 @@
   "10-relaxed-unknowns.txt": {
     "warnings": ["LINE_IN_FIXED_ZONE", "LINE_UNKNOWN", "SEG_UNKNOWN", "CPS_NOT_INTEGER", "DATE_SHORT", "BASELINE_METHOD_DEPRECATED"]
   },
-  "12-v04-stream.txt": { "warnings": [] }
+  "12-v04-stream.txt": { "warnings": [] },
+  "13-v04-actuator-native.txt": { "warnings": [] }
 }

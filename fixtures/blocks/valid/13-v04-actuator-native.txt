@@ -1,0 +1,17 @@
+<bio_context v="0.4" mode="character" view="device-aware" source="heartlink" device="polar-h10" transport="ble" cadence="1s" rr="yes" trigger="normal" date="2026-09-18" tz="+08:00" stream="no" lag="4s">
+sent: 22:10:05
+scope: gen, read = previous reply; write, send = this message
+baseline: 66 bpm (rest, n=120) | age 12m | noise ±3
+history: n/a
+gen: 30s | hr 70→72 [69–74] | cov 97%
+read: 1:05 | hr 72→80 [71–84] peak 84 @38s | cov 96%
+write: 20s, 31 chars, pauses 1, edits 0 | hr 80→78 [77–81] | cov 100%
+away: none
+send: 78 bpm (+18%)
+haptics(heartlink): on | cap 80% | profile steady | actuators 2
+actuator(intiface:0:1): battery 12% low | charging no | link ok
+actuator(page:toy-a): battery n/a (stale) | link reconnecting
+native(intiface:0:1): 1 波浪 | 2 脉冲 | 3 失控 (unstoppable, 60s, opt-in)
+feedback(heartlink): acts 2 sent, 1 done, 1 cut | replay native read @20s | stop by reader read @50s (native-unstoppable, reply -1, act 2)
+note: observable record only; phase edges are page events; hr lags seconds; wrist motion lowers confidence
+</bio_context>

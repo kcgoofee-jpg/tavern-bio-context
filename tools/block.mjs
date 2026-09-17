@@ -69,6 +69,9 @@ export const EXTENSION_LINES = {
   feedback: { level: 'L0', since: '0.3' },
   // v0.4 草案 §1：流式显示段
   stream: { level: 'L1', since: '0.4' },
+  // v0.4 草案 §7：执行器的电量与连接；§8：用户开启了的设备自带模式
+  actuator: { level: 'L0', since: '0.4', named: true, perActuator: true },
+  native: { level: 'L0', since: '0.4', named: true, perActuator: true },
 };
 
 export const KIND_SINCE = {
@@ -148,6 +151,21 @@ const FEEDBACK_REASON = '(?:disconnected|deadline|heat-limit|rate-limit|other)';
 const FEEDBACK_REF_RE = new RegExp(`^(?:${FEEDBACK_REASON}(?:, |$))?(?:reply -\\d+(?:, act \\d+)?(?:, \\d+(?:\\.\\d)?s in)?)?$`);
 const FEEDBACK_REF_LEGACY_RE = /^act \d+(?:, \d+(?:\.\d)?s in)?$/;
 const FEEDBACK_MAX_EVENTS = 8;
+// v0.4 草案 §8.6：停止指令发出后自带模式仍在运行
+const FEEDBACK_REF_V04_RE = new RegExp(`^native-unstoppable(?:, reply -\\d+(?:, act \\d+)?(?:, \\d+(?:\\.\\d)?s in)?)?$`);
+
+// v0.4 草案 §7、§8
+export const ACTUATOR_LOW_MAX = 15;          // low 只在电量 ≤ 15% 时可以写（经验值）
+export const ACTUATOR_MAX_LINES = 4;
+export const NATIVE_MAX_MODES = 8;
+export const LINKS = ['ok', 'reconnecting', 'lost'];
+const ACTUATOR_SEGS = [
+  { key: 'battery', since: '0.4', re: /^battery (?:(\d{1,3})%( low)?|n\/a(?: \([^()]*\))?)$/ },
+  { key: 'charging', since: '0.4', re: /^charging (?:yes|no)$/ },
+  { key: 'link', since: '0.4', re: /^link (?:ok|reconnecting|lost)$/ },
+];
+const NATIVE_SEG_RE = new RegExp(`^(\\d{1,2}) ([^\\s|()<>]{1,8})(?: \\((.*)\\))?$`, 'u');
+const NATIVE_NOTE_RE = new RegExp(`^unstoppable, ${DUR}, opt-in$`);
 
 export function parseBlock(text, opts = {}) {
   const profile = opts.profile === 'reader' ? 'reader' : 'producer';
@@ -483,7 +501,10 @@ function checkFeedback(ctx, l) {
       if (m[2] === 'send' && m[3] !== '0') ctx.err(l.line, 'FEEDBACK_SEND_AT', `发送时刻的事件写 send @0s：${seg}`);
       const note = m[4];
       if (note != null) {
-        if (FEEDBACK_REF_LEGACY_RE.test(note)) ctx.warn(l.line, 'FEEDBACK_REF_LEGACY', `旧备注写法（读者仍接受），应写 reply -N, act N, Ns in：${note}`);
+        if (FEEDBACK_REF_V04_RE.test(note)) {
+          if (!ctx.at('0.4')) ctx.err(l.line, 'LINE_SYNTAX', `native-unstoppable 是 v0.4 的备注：${note}`);
+          else if (!m[1].startsWith('stop by')) ctx.err(l.line, 'LINE_SYNTAX', `native-unstoppable 只用于 stop by …：${seg}`);
+        } else if (FEEDBACK_REF_LEGACY_RE.test(note)) ctx.warn(l.line, 'FEEDBACK_REF_LEGACY', `旧备注写法（读者仍接受），应写 reply -N, act N, Ns in：${note}`);
         else if (!FEEDBACK_REF_RE.test(note) || note === '') ctx.err(l.line, 'LINE_SYNTAX', `feedback 备注只能写原因与 reply -N[, act N][, Ns in]：${note}`);
         else if (/^(?:disconnected|deadline|heat-limit|rate-limit|other)/.test(note) && !m[1].startsWith('stop by device')) ctx.err(l.line, 'LINE_SYNTAX', `停止原因只用于 stop by device：${seg}`);
       }
@@ -515,6 +536,36 @@ function checkStream(ctx, l, sparse, lagSec) {
     if (hr.peak == null) ctx.err(l.line, 'STREAM_POS_WITHOUT_PEAK', '没有 peak 时不得输出 pos');
     if (sparse) ctx.err(l.line, 'SPARSE_FIELD', '稀疏来源不得输出 pos（stream 行）');
     if (total !== Number(bm[1]) || n > total || para > paras || para < 1) ctx.err(l.line, 'STREAM_POS_RANGE', `pos 必须满足 已显示 ≤ 总字数（= body 字数），段落号在 1–总段落数之间：${found.pos[0]}`);
+  }
+}
+
+// v0.4 草案 §7.3
+function checkActuator(ctx, l) {
+  const found = checkSegs(ctx, l, l.body.split(' | '), ACTUATOR_SEGS);
+  const keys = Object.keys(found);
+  if (!keys.length) { ctx.err(l.line, 'LINE_SYNTAX', `actuator 行至少要有 battery / charging / link 之一：${l.raw}`); return; }
+  const order = ACTUATOR_SEGS.map((d) => d.key).filter((k) => keys.includes(k));
+  if (keys.join() !== order.join()) ctx.err(l.line, 'LINE_ORDER', `actuator 行的段顺序应为 battery → charging → link：${l.raw}`);
+  const b = found.battery;
+  if (b && b[1] != null) {
+    const pct = Number(b[1]);
+    if (pct > 100) ctx.err(l.line, 'ACTUATOR_BATTERY_RANGE', `电量必须在 0–100%：${b[0]}`);
+    if (b[2] && pct > ACTUATOR_LOW_MAX) ctx.err(l.line, 'ACTUATOR_LOW_WRONG', `low 只在电量 ≤ ${ACTUATOR_LOW_MAX}% 时可以写：${b[0]}`);
+  }
+}
+
+// v0.4 草案 §8.3
+function checkNative(ctx, l) {
+  const segs = l.body.split(' | ');
+  if (segs.length > NATIVE_MAX_MODES) ctx.err(l.line, 'NATIVE_TOO_MANY', `native 行最多 ${NATIVE_MAX_MODES} 个模式`);
+  let last = 0;
+  for (const seg of segs) {
+    const m = NATIVE_SEG_RE.exec(seg);
+    if (!m) { ctx.err(l.line, 'LINE_SYNTAX', `native 行的模式段应为 序号 名字[ (unstoppable, 时长, opt-in)]：${seg}`); continue; }
+    const n = Number(m[1]);
+    if (n < 1 || n <= last) ctx.err(l.line, 'NATIVE_ORDER', `native 行的序号必须从 1 起、升序且不重复：${seg}`);
+    last = Math.max(last, n);
+    if (m[3] != null && !NATIVE_NOTE_RE.test(m[3])) ctx.err(l.line, 'LINE_SYNTAX', `native 行的括号只能写 unstoppable, 时长, opt-in：${seg}`);
   }
 }
 
@@ -596,6 +647,19 @@ function checkLines(ctx, lines) {
         if (reg.date) checkLineDate(ctx, l, reg.date);
         if (l.name === 'feedback') checkFeedback(ctx, l);
         if (l.name === 'stream') { info.stream = l; checkStream(ctx, l, sparse, lagSec); }
+        if (reg.perActuator) {
+          if (!IDENT_RE.test(l.meta)) err(l.line, 'ACTUATOR_NAME', `${l.name} 行括号里必须是执行器 id（v0.3 §4.4 的标识规则）：${l.meta}`);
+          const seen = (info[l.name] ??= new Set());
+          if (seen.has(l.meta)) err(l.line, 'LINE_DUP', `${l.name}(${l.meta}) 行只能出现一次`);
+          seen.add(l.meta);
+          if (l.name === 'actuator') {
+            if (seen.size === ACTUATOR_MAX_LINES + 1) err(l.line, 'ACTUATOR_TOO_MANY', `actuator 行最多 ${ACTUATOR_MAX_LINES} 行`);
+            checkActuator(ctx, l);
+          } else {
+            info.nativeLine ??= l;
+            checkNative(ctx, l);
+          }
+        }
       }
     }
   }
@@ -621,6 +685,7 @@ function checkLines(ctx, lines) {
       if (sparse) err(info.readPos.line, 'SPARSE_FIELD', '稀疏来源不得输出 read-pos');
     }
   }
+  if (at('0.4') && info.nativeLine && first.haptics && first.haptics.body === 'off') err(info.nativeLine.line, 'NATIVE_HAPTICS_OFF', 'haptics 行是 off 时不得输出 native 行');
   if (at('0.4') && attrs.stream === 'yes' && info.readPos) err(info.readPos.line, 'READPOS_FORBIDDEN', 'stream="yes" 时不得输出 read-pos（位置看 stream 行的 pos）');
 }
 
