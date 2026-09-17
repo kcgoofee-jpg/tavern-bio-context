@@ -39,6 +39,32 @@ v0.2 的 `author` / `character` 容易被读成"谁在说话"，实际含义是"
 
 读者必须把旧值当别名：`author` = `backstage`，`character` = `in-story`。实现写新值。
 
+## 1.2 卡片声明 `data.extensions.tbc`（v0.3 新增）
+
+卡（角色卡 / 场景卡）可以声明自己希望怎么使用 bio 数据。实现只读、不改卡。
+
+```json
+"extensions": {
+  "tbc": {
+    "mode_hint": "in-story",
+    "perceiver": ["斯琪娅"]
+  }
+}
+```
+
+| 字段 | 取值 | 含义 |
+|---|---|---|
+| `mode_hint` | `backstage` / `in-story` / `device-aware`（旧值 `author` / `character` 也认） | 这张卡建议的默认模式。**只是默认值**：用户在该聊天里手动选过模式，一律以用户为准 |
+| `perceiver` | 字符串或字符串数组，≤ 3 个，每个 ≤ 24 字 | `in-story` / `device-aware` 时，由谁在故事里察觉读者的身体状态。缺省 = 在场角色都可以 |
+
+实现要求：
+
+1. 换聊天时读取当前角色卡的声明；群聊不读。
+2. 默认模式 = 用户在该聊天的选择 → 卡的 `mode_hint` → 实现默认（`backstage`）。实现的界面应能看出当前模式来自卡的建议。
+3. 有 `perceiver` 且当前模式不是 `backstage` 时，首行加属性 `perceiver="斯琪娅"`（多个用 `、` 连接，去掉引号与尖括号）。它是元数据，不是结论。
+4. 解释层（世界书等）看到 `perceiver` 时，只让这些角色表达察觉，其他在场角色照常行动、不评论读者身体。
+5. 卡不应依赖某个实现的解释层条目名或标签名；需要读法时写“按注入块的读法”。
+
 ## 2. 块格式增量
 
 新增行的顺序（放在 v0.2 的 `send` 之后、`series` 之前）：
@@ -192,7 +218,7 @@ WHOOP 4.0：`RUN_HAPTICS_PATTERN`（0x4F）`[patternId, loops, 0, 0, 0]`。WHOOP
 - v0.2 读者遇到不认识的行应忽略（v0.2 已要求）。
 - `prior` 行与 `bio.prior` 保留；`setPrior` 保留。
 - 首行 `v="0.3"`。
-- `mode` 旧值 `author` / `character` 作为别名继续有效（§1.1）；世界书按 `mode="…"` 触发的条目要同时认新旧两个关键字。
+- `mode` 旧值 `author` / `character` 作为别名继续有效（§1.1）；卡片声明与首行 `perceiver` 属性是可选新增，旧读者忽略即可（§1.2）；世界书按 `mode="…"` 触发的条目要同时认新旧两个关键字。
 
 ## 7. 待定
 
