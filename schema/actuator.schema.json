@@ -100,6 +100,14 @@
           "integer"
         ]
       }
+    },
+    "exclusive": {
+      "type": "boolean",
+      "description": "设备同时只接受一个连接（§5.9-7）"
+    },
+    "stopsOnDisconnect": {
+      "type": "boolean",
+      "description": "断线时设备是否确定会自动停下；缺省视为 false（§5.9-8）"
     }
   }
 }
