@@ -16,7 +16,7 @@ export const EXTENSION_LINES = {
   body: { level: 'L2' }, cycle: { level: 'L2' }, journal: { level: 'L2' },
   env: { level: 'L0' },
   // v0.3 §5.8：触觉输出的当前状态，让卡片 / 预设知道能不能写 <bio_act/>、用户选了哪个档位
-  haptics: { level: 'L0', body: /^(?:off|on \| cap \d{1,3}% \| profile (?:slow-burn|frenzy)(?: \| actuators \d+)?)$/ },
+  haptics: { level: 'L0', body: /^(?:off|on \| cap \d{1,3}% \| profile (?:slow-burn|steady|frenzy|max)(?: \| actuators \d+)?)$/ },
 };
 export const KINDS = ['hr', 'rr', 'pressure', 'temperature', 'room_temperature', 'humidity', 'spo2', 'stress', 'button', 'battery',
   'wear', 'motion', 'skin_temperature', 'resp_rate', 'posture', 'charging', 'ppg'];

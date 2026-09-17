@@ -17,8 +17,10 @@ export const DEFAULT_MS = { pulse: 200, double: 500, triple: 800, long: 1500, he
 //   minIntervalMs：同一执行器两次触发的缺省最小间隔（执行器自己声明的更大时取更大者）
 //   maxPerReply：每条回复最多执行几个（上限 MAX_PER_REPLY_LIMIT）
 export const PROFILES = {
-  'slow-burn': { floor: 0, defaultMs: { long: 1500, heartbeat: 2700, wave: 3000 }, minIntervalMs: 1500, maxPerReply: 3 },
-  frenzy: { floor: 0.4, defaultMs: { long: 5000, heartbeat: 5400, wave: 6000 }, minIntervalMs: 800, maxPerReply: 5 },
+  'slow-burn': { floor: 0, defaultMs: { long: 1500, heartbeat: 2700, wave: 3000 }, minIntervalMs: 1500, maxPerReply: 3 },   // 慢热：从轻开始
+  steady: { floor: 0.25, defaultMs: { long: 8000, heartbeat: 8100, wave: 9000 }, minIntervalMs: 1200, maxPerReply: 3 },       // 持久：中等强度、时间长
+  frenzy: { floor: 0.4, defaultMs: { long: 5000, heartbeat: 5400, wave: 6000 }, minIntervalMs: 800, maxPerReply: 5 },         // 狂暴：高触发、高功率
+  max: { floor: 0.8, defaultMs: { long: 10000, heartbeat: 9000, wave: 10000 }, minIntervalMs: 500, maxPerReply: 5 },         // 极限：几乎一直开满
 };
 export const DEFAULT_PROFILE = 'slow-burn';
 export const MAX_PER_REPLY_LIMIT = 5;

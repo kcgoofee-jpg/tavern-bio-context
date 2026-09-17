@@ -63,7 +63,7 @@ for (const p of PATTERNS) {
     ['档位：不传参数与初版一致', JSON.stringify(patternFrames('wave', 0.8, null)) === JSON.stringify(patternFrames('wave', 0.8, null, resolveSettings('slow-burn')))],
     ['自定义：覆盖默认时长', patternFrames('long', 1, null, resolveSettings('slow-burn', { defaultMs: { long: 8000 } })).at(-1)[0] === 8000],
     ['自定义：每条回复上限最多 5', resolveSettings('frenzy', { maxPerReply: 9 }).maxPerReply === 5 && parseBioActs('<bio_act/>'.repeat(6), { maxPerReply: 5 }).acts.length === 5],
-    ['未知档位按慢热', resolveSettings('turbo').profile === 'slow-burn' && Object.keys(PROFILES).join() === 'slow-burn,frenzy'],
+    ['未知档位按慢热', resolveSettings('turbo').profile === 'slow-burn' && Object.keys(PROFILES).join() === 'slow-burn,steady,frenzy,max'],
   ];
   for (const [name, ok] of cases) ok ? pass(`bio-act/${name}`) : fail(`bio-act/${name}`);
 }

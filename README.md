@@ -110,7 +110,7 @@
 
 模式：`pulse`、`double`、`triple`、`long`、`heartbeat`、`wave`；强度 0–1；帧形状见参考实现 `tools/bio-act.mjs`。
 
-强度档位（v0.3 §5.8）：`slow-burn` 慢热（缺省）/ `frenzy` 狂暴，由用户选；强度下限、各模式时长、最小间隔、每条回复上限都可自定义。块内用 `haptics(来源): on | cap 60% | profile frenzy` 行告诉卡片当前状态。
+强度档位（v0.3 §5.8）：`slow-burn` 慢热（缺省）/ `steady` 持久 / `frenzy` 狂暴 / `max` 极限，由用户选；强度下限、各模式时长、最小间隔、每条回复上限都可自定义。块内用 `haptics(来源): on | cap 60% | profile frenzy` 行告诉卡片当前状态。
 
 ## 4. 相位
 
