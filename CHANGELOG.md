@@ -21,6 +21,7 @@
 - 可检查的规范：`docs/conformance-zh.md`、`schema/block.abnf`、三份 JSON Schema、`fixtures/`、`tools/block.mjs`、`tools/validate.mjs`。
 
 ### Changed
+- `write` / `send` 行允许 `n/a (原因)`，与 `gen` / `read` 一致（参考实现一直这样写，校验器此前误报）。
 - `prior` 行位置维持 v0.2（`baseline` 之后），修正草案示例里的冲突。
 
 ## [0.2] — 2026-09-17（定稿候选）

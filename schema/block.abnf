@@ -21,10 +21,10 @@ history-line   = %s"history: " ( %s"n/a" / %s"read-peaks " values [" | read-dur 
 gen-line       = %s"gen: " ( %s"n/a" / dur [SP "(" text ")"] " | " hr-part *segment )
 read-line      = %s"read: " ( %s"n/a" [SP "(" text ")"] / dur " | " hr-part *segment )
 read-pos-line  = %s"read-pos: " text
-write-line     = %s"write: " ( %s"n/a" / dur ", " 1*DIGIT " chars, pauses " 1*DIGIT ", edits " 1*DIGIT " | " hr-part *segment )
+write-line     = %s"write: " ( na-reason / %s"n/a" / dur ", " 1*DIGIT " chars, pauses " 1*DIGIT ", edits " 1*DIGIT " | " hr-part *segment )
 away-line      = %s"away: " ( %s"none" / away-span *("; " away-span) )
 away-span      = clock "–" clock SP (%s"hidden" / %s"idle") [SP range]
-send-line      = %s"send: " ( %s"n/a" / bpm [SP "(" ("+" / "-") 1*DIGIT "%)"] )
+send-line      = %s"send: " ( na-reason / %s"n/a" / bpm [SP "(" ("+" / "-") 1*DIGIT "%)"] )
 
 extension-line = device-line / named-line
 device-line    = %s"device: " 1*120(%x20-3B / %x3D / %x3F-10FFFF)

@@ -36,9 +36,9 @@ const FIXED = [
   { name: 'gen', required: true, re: new RegExp(`^gen: (?:n/a|${DUR}(?: \\([^)]*\\))? \\| (?:${HR_RANGE}|n/a(?: \\([^)]*\\))?)${SEG})$`) },
   { name: 'read', required: true, re: new RegExp(`^read: (?:n/a(?: \\([^)]*\\))?|${DUR} \\| (?:${HR_RANGE}|n/a(?: \\([^)]*\\))?)${SEG})$`) },
   { name: 'read-pos', required: false, re: /^read-pos: (?:peak ~\d+% \(~\d+\/\d+ chars, para \d+\/\d+\) @\d+ cps (?:est|cal)|partial \(read time covers ~\d+% of \d+ chars @\d+ cps (?:est|cal)\), peak at \d+% of read time)$/ },
-  { name: 'write', required: true, re: new RegExp(`^write: (?:n/a|${DUR}, \\d+ chars, pauses \\d+, edits \\d+ \\| (?:${HR_RANGE}|n/a(?: \\([^)]*\\))?)${SEG})$`) },
+  { name: 'write', required: true, re: new RegExp(`^write: (?:n/a(?: \\([^)]*\\))?|${DUR}, \\d+ chars, pauses \\d+, edits \\d+ \\| (?:${HR_RANGE}|n/a(?: \\([^)]*\\))?)${SEG})$`) },
   { name: 'away', required: true, re: new RegExp(`^away: (?:none|${CLOCK}–${CLOCK} (?:hidden|idle)(?: \\[\\d+–\\d+\\])?(?:; ${CLOCK}–${CLOCK} (?:hidden|idle)(?: \\[\\d+–\\d+\\])?)*)$`) },
-  { name: 'send', required: true, re: /^send: (?:n\/a|\d+ bpm(?: \([+-]\d+%\))?)$/ },
+  { name: 'send', required: true, re: /^send: (?:n\/a(?: \([^)]*\))?|\d+ bpm(?: \([+-]\d+%\))?)$/ },
 ];
 
 function escapeRe(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
