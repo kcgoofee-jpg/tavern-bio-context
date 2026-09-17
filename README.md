@@ -38,8 +38,8 @@
 |---|---|---|---|---|
 | 注入块 `<bio_context>` | 每次用户可见生成前注入的一条 system 消息：首行属性 + 固定行 + 扩展行，字段为固定英文键，块内不写解释 | 生产者（设备脚本） | 模型 | v0.2 §2，v0.3 §1–2，`schema/block.abnf` |
 | 聊天变量 `bio` | 本轮摘要、最近 20 轮、日级数据、传感器状态 | 生产者 | 角色卡脚本、状态栏、导出 | v0.2 §3，v0.3 §3，`schema/bio-variable.schema.json` |
-| 页面事件 `bio:*` | `bio:sample`、`bio:inject`、`bio:state`、`bio:diagnostics`、`bio:actuate`、`bio:actuators` | 生产者 | 其他扩展、美化 | v0.2 §4，v0.3 §4–5 |
-| 页面总线 `window.tbc` | `push` 样本、`registerContext` 设备状态行、`setDaily`、`diagnostics()`、`setExposure()`、`registerActuator` / `actuate` / `stop` | 生产者提供，任何脚本调用 | 信号源、执行器、卡片脚本 | v0.2 §5，v0.3 §4–5 |
+| 页面事件 `bio:*` | `bio:sample`、`bio:inject`、`bio:state`、`bio:diagnostics`、`bio:actuate`、`bio:actuators`、`bio:output-state`、`bio:reply-acts` | 生产者 | 其他扩展、美化 | v0.2 §4，v0.3 §4–5 |
+| 页面总线 `window.tbc` | `push` 样本、`registerContext` 设备状态行、`setDaily`、`diagnostics()`、`setExposure()`、`registerActuator` / `actuate` / `stop`、只读的 `outputState()` / `replyActs()` | 生产者提供，任何脚本调用 | 信号源、执行器、卡片脚本 | v0.2 §5，v0.3 §4–5 |
 | 本机桥 | `ws://127.0.0.1:27130/tbc/v0.2`，跨进程镜像总线 | 桌面程序 | 生产者 | v0.2 §6，v0.3 §5.5 |
 | 卡片声明 | `data.extensions.tbc = { mode_hint, perceiver, min_spec }` | 角色卡作者 | 生产者 | v0.3 §1.2，`schema/card-declaration.schema.json` |
 

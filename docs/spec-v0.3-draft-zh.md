@@ -233,6 +233,7 @@ handler({ action, frames, deadline })   // deadline = 开始时间 + 帧长 + �
 - 能调强度的执行器（`levels: true`）按帧依次设定强度；只有开关或固定模式的执行器（手环）可以忽略帧，直接用 `action.pattern` 映射到设备自带模式。
 - 帧的形状由参考实现 `patternFrames()` 规定，实现应与之一致（同样输入同样输出）。
 - 实现自己也要有看门狗：`deadline` 过了执行器还没回 0，就发停止。
+- **计时不能靠页面计时器**：页面切到后台（或被别的窗口挡住）时，浏览器会把页面计时器压到约每秒一次，帧会走样。实现应在 Worker（或同等不受节流的机制）里排帧。2026-09-17 实测：后台标签页里 10 个 100 ms 的页面计时器挤在约 1.2 秒才触发，而 Worker 排的 600 ms 帧间隔保持在 557–654 ms。
 
 ### 5.3 模型侧写法（可选约定）
 
@@ -324,6 +325,24 @@ haptics(heartlink): off
 - 读侧复用生产者已有的数据（聊天变量 `bio`、总线样本），不另行轮询设备。
 - 停止必须能在 AI 会话之外触发（§5.4-8）。
 - 文档要写明：生理数据经 MCP 发给第三方模型客户端后，就离开了酒馆侧的隐私设定。
+
+### 5.11 给助手与卡片的只读接口（2026-09-17 新增）
+
+角色助手（如“小影”）、卡片脚本、美化都可能需要知道“现在能不能动、用户选了什么、上一条回复的动作执行了没有”。它们只能通过下面的公开接口读取，不得读取某个实现的内部数据。
+
+```js
+tbc.outputState()
+// → { enabled: true, maxIntensity: 0.6, profile: 'frenzy', profileChosen: true,
+//     settings: { floor, defaultMs, minIntervalMs, maxPerReply },   // §5.8 生效值
+//     fromReplies: true, actuators: 3 }                             // 用户没关掉的执行器数
+tbc.replyActs()
+// → 当前聊天最近的回复动作记录（新的在后，最多 60 条）：
+//   [{ key, index, t, acts: [...], errors: ['BAD_PATTERN'], skipped: null | 'disabled' | 'replies-off' | 'no-device' | 'safeword',
+//      results: [{ t, pattern, results: [{ id, ok, refused?, clipped? }] }] }]
+```
+
+- 事件：`bio:output-state`（设置或执行器变化时，detail 同 `outputState()`）；`bio:reply-acts`（某条回复的记录新增或更新时，detail 为那一条）。
+- `index` 是该回复在聊天里的位置；`key` 由实现决定，只保证同一条回复（同一滑动页、同一内容）不变。
 
 ## 6. 兼容
 

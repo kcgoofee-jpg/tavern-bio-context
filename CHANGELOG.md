@@ -17,6 +17,8 @@
 - 扩展行 `haptics(来源): off | on | cap N% | profile …`（L0，§5.8）。
 - 设备层要求：强度 0 即停止、保活 `keepaliveMs`、互斥组 `group`、加热类必须有时长上限、有风险的输出（`Temperature` / `Estim` / `Spray`）不属于 `output="*"`、`nativePatterns`；`via` 增加 `mcp`（§5.9）；MCP 桥说明（§5.10）。
 - 安全：停止不经过模型；安全词为可选且缺省关闭（§5.4）。
+- 实现要求：强度帧的计时不能依赖页面计时器（后台标签页会被节流），应放进 Worker（§5.2）。
+- 只读接口 `tbc.outputState()`、`tbc.replyActs()` 与事件 `bio:output-state`、`bio:reply-acts`，供角色助手 / 卡片读取输出状态（§5.11）。
 - 社区设备实测页 `tools/device-test.html` 与报告说明。
 - 可检查的规范：`docs/conformance-zh.md`、`schema/block.abnf`、三份 JSON Schema、`fixtures/`、`tools/block.mjs`、`tools/validate.mjs`。
 
