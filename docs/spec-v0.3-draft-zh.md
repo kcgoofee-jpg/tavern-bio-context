@@ -412,7 +412,7 @@ tbc.registerActuator('whoop-5.0', {
 
 const r = await tbc.actuate('*', { output: 'Vibrate', pattern: 'wave', intensity: 0.4, durationMs: 3000, reason: 'char-touch' }, { source: 'card-script' });
 // r = { ok: true, results: [{ id, ok: true, clipped?: {...}, fallback?: 'pulse' }] }
-//   | { ok: false, refused: 'disabled' | 'rate-limit' | 'quiet-hours' | 'not-worn' | 'sleeping' | 'unknown-target' | 'unsupported' | 'hr-high' }
+//   | { ok: false, refused: 'disabled' | 'rate-limit' | 'quiet-hours' | 'not-worn' | 'sleeping' | 'unknown-target' | 'unsupported' | 'hr-high' | 'stop-failed' }
 
 tbc.stop();                                 // 全局停止；tbc.stop('whoop-5.0') 只停一个
 tbc.actuators();                            // [{ id, ...caps, busy }]
@@ -543,7 +543,7 @@ haptics(heartlink): off
 6. **有风险的输出要点名**：`Temperature`、`Estim`、`Spray` 不属于 `output="*"`（包括不写 `output`）的范围；只有写明这个输出类型才会驱动，否则返回 `unsupported`（参考实现 `RISKY_OUTPUTS`）。
 7. **独占连接**：设备同时只接受一个连接时（常见于只配官方 App 的设备），能力里写 `exclusive: true`；连接失败时实现应提示“先断开官方 App”，不要反复重试抢占。
 8. **断线后状态未知**：设备断线时是否自动停下没有核实的，能力里写 `stopsOnDisconnect: false`（缺省视为 `false`）；实现在断线期间要把该执行器显示为“可能仍在动”，重连后第一件事是对全部输出发停止，再恢复排队。
-9. **全部停止先于排队**：`tbc.stop()` 必须越过执行器里已排队的指令，按输出逐个发停止；需要逐输出应答的设备，停止指令也要等应答，失败要重试并报 `refused`。
+9. **全部停止先于排队**：`tbc.stop()` 必须越过执行器里已排队的指令，按输出逐个发停止；需要逐输出应答的设备，停止指令也要等应答，失败要重试（至少 2 次）并返回 `refused: 'stop-failed'`，界面继续显示“可能仍在动”，并记一条 `feedback`（`from: 'device'`、`reason: 'other'`，备注写明）。
 10. 字节格式、档位数、握手、双芯片（一个型号对应两个蓝牙模块）等属于驱动实现，不进协议（同一系列不同型号就不一样；社区经验是先抓包，不要盲发网上的指令）。
 
 ### 5.10 MCP 桥（非规范）
