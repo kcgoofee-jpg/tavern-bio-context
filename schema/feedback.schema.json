@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kcgoofee-jpg/tavern-bio-context/schema/feedback.schema.json",
+  "title": "TBC v0.3 device feedback event (tbc.feedback, §5.12)",
+  "type": "object",
+  "required": ["t", "from", "type"],
+  "additionalProperties": false,
+  "properties": {
+    "t": { "type": "integer", "minimum": 0 },
+    "from": { "enum": ["reader", "safeword", "device"] },
+    "type": { "enum": ["stop", "stronger", "weaker", "pace", "replay", "skip"] },
+    "value": { "type": ["integer", "string", "null"] },
+    "target": { "type": ["string", "null"], "maxLength": 64 },
+    "act": {
+      "type": ["object", "null"],
+      "required": ["key"],
+      "additionalProperties": false,
+      "properties": {
+        "key": { "type": "string", "maxLength": 64 },
+        "i": { "type": "integer", "minimum": 0 },
+        "afterMs": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "reason": { "enum": ["disconnected", "deadline", "heat-limit", "rate-limit", "other", null] }
+  },
+  "allOf": [
+    { "if": { "properties": { "from": { "const": "device" } } }, "then": { "required": ["reason"], "properties": { "reason": { "type": "string" } } } },
+    { "if": { "properties": { "type": { "enum": ["stronger", "weaker"] } } }, "then": { "required": ["value"], "properties": { "value": { "type": "integer", "minimum": 1, "maximum": 100 } } } },
+    { "if": { "properties": { "type": { "const": "pace" } } }, "then": { "required": ["value"], "properties": { "value": { "enum": ["slow-burn", "steady", "frenzy", "max"] } } } }
+  ]
+}

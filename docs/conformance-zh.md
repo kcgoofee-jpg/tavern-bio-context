@@ -64,6 +64,7 @@
 | `body` `cycle` `journal`（必须带 `[L2]`） | L2 | 0.3 |
 | `device:` | L0 | 0.2 |
 | `haptics`（触觉状态：`off` 或 `on \| cap N% \| profile slow-burn\|steady\|frenzy\|max[ \| actuators N]`，§5.8） | L0 | 0.3 |
+| `feedback`（读者对设备的操作与上一条回复动作的执行结果，§5.12） | L0 | 0.3 |
 | 与 kind 同名的信号行（如 `pressure(...)`） | 视信号 | 0.2 |
 
 尾部：`series`(可选) → `note`(必须，固定句) → `warn`(可选，可多行，0.3 登记；生产者用它提示数据可能不完整)。

@@ -161,6 +161,7 @@ note: observable record only; phase edges are page events; hr lags seconds; wris
 - 执行器用 `tbc.registerActuator(id, caps, handler)` 登记；生产者把模式展开成强度帧交给执行器。
 - 安全（必须）：默认关闭；用户强度上限；每个执行器的最小间隔；每条回复最多 3 个（可改，最多 5）；一键全停；页面关闭或断线即停；停止不经过模型判断。安全词是可选功能，默认关闭。
 - 只读状态给角色助手、卡片脚本、美化用：`tbc.outputState()`（开关、强度上限、当前档位、执行器数）、`tbc.replyActs()`（最近的回复动作执行记录），以及对应事件 `bio:output-state`、`bio:reply-acts`；它们只能读这组公开接口，不得读某个实现的内部状态。
+- **反方向：玩具 → 剧情**（§5.12）：读者按停、调强调弱、换节奏、再来一次、跳过，用 `tbc.feedback()` 记录，下一轮以 `feedback(…)` 行交给模型（如 `acts 3 sent, 2 done | stop by reader read @61s`）；玩具自带的压力传感器、按键按 kind `pressure` / `button` 推送。反馈只记录，不自动触发新动作。
 - Intiface Central / buttplug 适配说明见 v0.3 §5.6（v4 协议，服务器不支持时回退 v3）。
 - **设备实测征集**：用 [`tools/device-test.html`](tools/device-test.html) 测你自己的设备（浏览器直连或 Intiface），按 [`docs/device-test-reports-zh.md`](docs/device-test-reports-zh.md) 提 PR 补充结果。
 

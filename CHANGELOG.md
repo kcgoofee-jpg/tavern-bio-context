@@ -13,6 +13,7 @@
 - 日级行 `sleep` / `day` / `workout` / `trend`，事件与设备行 `wear` / `button` / `motion` / `sensor`，L2 敏感行 `body` / `cycle` / `journal`；尾部 `warn:` 行登记。
 - 敏感分级 L0 / L1 / L2；`bio.daily`、`bio.sensor`、`bio.sensitive`；总线 `setDaily` / `getDaily` / `setExposure` 与新 kind。
 - 输出接口：`registerActuator(id, caps, handler)` / `actuate` / `stop` / `actuators`、`<bio_act/>`（`intensity`、`ms` 属性）；强度帧 `patternFrames()`；模式 `wave`；执行器 `minIntervalMs`、`levels`、`via`；用户强度上限；Intiface / buttplug v4（回退 v3）适配说明。参考实现 `tools/bio-act.mjs`，Schema `bio-act`、`actuator`。
+- 设备反馈输入（玩具 → 剧情，§5.12）：`tbc.feedback()` / `bio:feedback` / `feedbackLog()`，块内 `feedback` 行（L0），`bio.feedback`，`replyActs()` 记录可带 `feedback`；Schema `feedback`。
 - 强度档位 `slow-burn`（慢热）/ `steady`（持久）/ `frenzy`（狂暴）/ `max`（极限）与可自定义参数（强度下限、各模式缺省时长、最小间隔、每条回复上限 ≤ 5）；参考实现 `resolveSettings` / `liftIntensity`，`patternFrames` / `parseBioActs` 增加可选设置参数（§5.8）。
 - 扩展行 `haptics(来源): off | on | cap N% | profile …`（L0，§5.8）。
 - 设备层要求：强度 0 即停止、保活 `keepaliveMs`、互斥组 `group`、加热类必须有时长上限、有风险的输出（`Temperature` / `Estim` / `Spray`）不属于 `output="*"`、`nativePatterns`；`via` 增加 `mcp`（§5.9）；MCP 桥说明（§5.10）。

@@ -18,5 +18,8 @@
   ],
   "06-bad-haptics-line.txt": [
     "LINE_SYNTAX"
+  ],
+  "07-bad-feedback.txt": [
+    "LINE_SYNTAX"
   ]
 }

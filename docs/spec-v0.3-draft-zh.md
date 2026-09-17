@@ -344,6 +344,61 @@ tbc.replyActs()
 - 事件：`bio:output-state`（设置或执行器变化时，detail 同 `outputState()`）；`bio:reply-acts`（某条回复的记录新增或更新时，detail 为那一条）。
 - `index` 是该回复在聊天里的位置；`key` 由实现决定，只保证同一条回复（同一滑动页、同一内容）不变。
 
+### 5.12 设备反馈输入：玩具 → 剧情（2026-09-17 新增）
+
+§5.1–5.11 让剧情驱动设备。本节规定反方向：读者对设备做了什么、设备自己报了什么，怎样作为**下一轮的输入**交给模型。心率是被动信号；这里的读者操作是**主动表态**，是块里最直接的主观信号。
+
+#### 5.12.1 反馈事件
+
+```js
+tbc.feedback({
+  t: Date.now(),
+  from: 'reader',            // reader 读者操作 | safeword 安全词 | device 设备或实现自己停下
+  type: 'stop',              // stop | stronger | weaker | pace | replay | skip
+  value: null,               // stronger / weaker：强度变化百分点（整数，正数）；pace：档位名；replay：模式名
+  target: 'intiface:0',      // 可选：执行器 id；缺省 = 全部
+  act: { key: 'r12', i: 2, afterMs: 2400 },   // 可选：对应 replyActs() 里哪条回复的第几个动作、开始后多久
+  reason: null,              // from=device 时必填：disconnected | deadline | heat-limit | rate-limit | other
+});
+tbc.on('bio:feedback', fn);  // detail 同上
+tbc.feedbackLog();           // 上次发送之后的反馈（新的在后，最多 20 条）
+```
+
+- 生产者：输出实现（记录自己界面上的“全部停止”、调强调弱、换档、再来一次、跳过）；遥控器、玩具 App 桥等第三方也可以调用 `tbc.feedback()`。
+- 事件只记录，不解释；实现**不得**因为反馈自动触发新的动作——新的动作只能来自模型的下一条回复或用户操作。
+- `stop` 必须先停再记录：停止不等模型、不等本事件被处理（§5.4）。
+- 玩具自带的传感器和按键不走本接口，按 §4 用 `tbc.push({ kind: 'pressure' | 'button', device, … })`，进块时是已有的 `pressure(…)` / `button(…)` 行，`device` 写执行器的名字。
+
+#### 5.12.2 块里的 `feedback` 行（L0）
+
+只在上次发送之后有反馈或有执行过的动作时出现，放在扩展区：
+
+```
+feedback(heartlink): acts 3 sent, 2 done | stop by reader read @61s (act 3, 2.4s in) | stronger +20% read @41s | replay heartbeat write @5s
+```
+
+| 段 | 含义 |
+|---|---|
+| `acts N sent, M done` | 上一条回复里的动作：发出几个、完整执行完几个。没有动作时省略 |
+| `stop by reader\|safeword\|device` | 谁让设备停的；`device` 时括号里写原因（`disconnected` 等） |
+| `stronger +N%` / `weaker -N%` | 读者手动调强 / 调弱 |
+| `pace <档位>` | 读者换了节奏（§5.8） |
+| `replay <模式>` / `skip` | 读者要求再来一次 / 跳过当前动作 |
+
+- 每段后面是 `<相位> @<相位内秒数>`，同 `button` 行；可带一个括号备注（≤ 40 字符，不含 `|` 与尖括号），只写关联的动作序号与开始后多久。
+- 段按时间顺序；最多 8 段，多的丢弃最早的并在末尾加 `| +N more`。
+- 读法（写给世界书 / 预设，非规范）：
+  - `stop by reader` / `skip`：这一下不对。下一条不要加码，不要重复同一模式，除非读者要求。
+  - `stronger` / `replay`：这一下对了，可以顺着来。`weaker`：方向对，力度过了。
+  - `stop by device` / `stop by safeword`：`device` 是技术原因，不代表喜好；`safeword` 按用户设定处理，下一条不写动作。
+  - 呈现仍按模式（§1.1）：`backstage` 只影响写法；`in-story` 写成角色察觉到的反应；`device-aware` 角色可以直接说“你刚才按停了”。
+
+#### 5.12.3 变量与只读接口
+
+- `bio.feedback`：`{ turn: [事件…] }`，每次发送时换成本轮的事件，给卡片脚本读。
+- `tbc.replyActs()` 的每条记录可带 `feedback: [事件…]`（`act.key` 对得上的那些）。
+- Schema：`schema/feedback.schema.json`。
+
 ## 6. 兼容
 
 - v0.2 读者遇到不认识的行应忽略（v0.2 已要求）。
@@ -354,5 +409,6 @@ tbc.replyActs()
 ## 7. 待定
 
 - `trend` 的数据能否实时拿到，取决于 whoopdesk 的"只读不删"实测。
+- 玩具反馈：由读者反馈触发“角色问一句现在感觉怎样”的交互格式（与 TODO 里“模型问你”合并考虑）。
 - 振动 pattern 的抽象名单：v0.3 已加 `wave`（第二类执行器：Intiface 玩具）；`sos` 等再有需要时定。
 - `cycle` 的来源：WHOOP API 当前没有周期数据端点，先留格式。
