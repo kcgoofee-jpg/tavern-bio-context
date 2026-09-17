@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TBC 设备实测</title>
+<style>
+  :root { --bg:#f3f2f5; --panel:#fff; --ink:#1c1b22; --muted:#5f5b6b; --line:#dcd9e3; --acc:#b2412c; --ok:#2f7d5b; color-scheme: light dark; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#121117; --panel:#1b1a21; --ink:#ebe8ef; --muted:#9b96a8; --line:#2d2a36; --acc:#e8664c; --ok:#6cc79e; } }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.7 "PingFang SC","Microsoft YaHei",system-ui,sans-serif; padding:24px 16px 48px; }
+  main { max-width:860px; margin:0 auto; display:grid; gap:18px; }
+  h1 { font-size:24px; margin:0; }
+  section { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px 16px; }
+  h2 { font-size:16px; margin:0 0 8px; }
+  p { margin:4px 0; }
+  .muted { color:var(--muted); font-size:13px; }
+  button { font:inherit; font-size:14px; padding:6px 14px; border-radius:8px; border:1px solid var(--line); background:transparent; color:inherit; cursor:pointer; }
+  button.primary { background:var(--acc); border-color:var(--acc); color:#fff; }
+  button.stop { border-color:var(--acc); color:var(--acc); font-weight:600; }
+  .row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  label { display:inline-flex; gap:6px; align-items:center; }
+  input[type=range] { accent-color:var(--acc); }
+  ul { margin:4px 0; padding-left:18px; }
+  textarea { width:100%; min-height:180px; font:12px/1.5 ui-monospace,Menlo,monospace; background:transparent; color:inherit; border:1px solid var(--line); border-radius:8px; padding:8px; }
+  code { font-family:ui-monospace,Menlo,monospace; font-size:.9em; }
+  .ok { color:var(--ok); } .bad { color:var(--acc); }
+</style>
+</head>
+<body>
+<main>
+  <h1>TBC 设备实测</h1>
+  <p class="muted">用你自己的设备测一遍 Tavern Bio-Context 的触觉输出（v0.3 §5）：连接 → 逐个播放抽象模式 → 确认“停止”有效 → 生成报告，把报告以 PR 的形式补进 <code>docs/device-test-reports-zh.md</code>。只测你自己拥有的设备。页面需要桌面 Chrome / Edge，通过 http(s) 打开（不能直接双击本地文件）。</p>
+
+  <section>
+    <h2>1. 连接</h2>
+    <div class="row">
+      <button class="primary" id="wasm">浏览器直连（buttplug-wasm）</button>
+      <button id="intiface">连接 Intiface Central（ws://127.0.0.1:12345）</button>
+      <span id="status" class="muted">未连接</span>
+    </div>
+    <p class="muted">直连不用装软件，设备库与 Intiface 相同；浏览器会弹窗让你选设备。Intiface 路线请先在 Intiface Central 里点 Start Server 并连上设备。</p>
+    <ul id="devices"></ul>
+  </section>
+
+  <section>
+    <h2>2. 播放模式</h2>
+    <div class="row">
+      <label>强度 <input type="range" id="level" min="5" max="100" step="5" value="30"> <span id="levelv">30%</span></label>
+      <button data-p="pulse">轻点</button><button data-p="double">两下</button><button data-p="triple">三下</button>
+      <button data-p="heartbeat">心跳</button><button data-p="wave">波浪</button><button data-p="long">持续</button>
+      <button class="stop" id="stop">停止</button>
+    </div>
+    <p class="muted">每个模式播完会自动归零。依次试一遍，并记下感受是否与名字相符。</p>
+  </section>
+
+  <section>
+    <h2>3. 报告</h2>
+    <div class="row">
+      <label><input type="checkbox" id="c-move"> 所有模式都动了</label>
+      <label><input type="checkbox" id="c-stop"> 点“停止”立即停</label>
+      <label><input type="checkbox" id="c-zero"> 每个模式播完都停了</label>
+      <label><input type="checkbox" id="c-level"> 强度滑块有明显差别</label>
+    </div>
+    <div class="row" style="margin-top:8px"><button id="report">生成报告</button></div>
+    <textarea id="out" readonly placeholder="点“生成报告”后复制这里的内容"></textarea>
+  </section>
+</main>
+<script type="module">
+import { patternFrames, PATTERNS } from './bio-act.mjs';
+
+const $ = (s) => document.querySelector(s);
+const log = [];
+let mode = null; let lib = null; let client = null;
+const setStatus = (t, cls) => { $('#status').textContent = t; $('#status').className = cls || 'muted'; };
+const note = (e) => { log.push(Object.assign({ t: Date.now() }, e)); };
+
+// 客户端版本要和服务端配套（2026-09 核对）：Intiface（buttplug 服务端 master）的 OutputCmd 值是单个整数，对应 JS 客户端 5.x；
+// buttplug-wasm 3.0.0 声明依赖 JS 客户端 4.x（4.x 发的是数组格式），所以直连用 4.x。
+async function loadLib(kind) {
+  if (kind === 'wasm') {
+    const [bp, bw] = await Promise.all([import('https://cdn.jsdelivr.net/npm/buttplug@4/+esm'), import('https://cdn.jsdelivr.net/npm/buttplug-wasm@3/+esm')]);
+    lib = { bp, Wasm: bw.ButtplugWasmClientConnector, clientVersion: '4.x' };
+  } else {
+    const bp = await import('https://cdn.jsdelivr.net/npm/buttplug@5/+esm');
+    lib = { bp, clientVersion: '5.x' };
+  }
+  return lib;
+}
+function listDevices() {
+  const ul = $('#devices'); ul.replaceChildren();
+  for (const d of client.devices.values ? client.devices.values() : client.devices) {
+    const outs = [...d.features.values()].flatMap((f) => Object.keys((f._feature && f._feature.Output) || {}));
+    const li = document.createElement('li');
+    li.textContent = `${d.displayName || d.name}：${outs.join(' / ') || '（没有可控输出）'}`;
+    ul.append(li);
+  }
+}
+async function connect(kind) {
+  try {
+    setStatus('连接中…');
+    const { bp, Wasm } = await loadLib(kind);
+    client = new bp.ButtplugClient('tbc-device-test');
+    client.addListener('deviceadded', (d) => { note({ ev: 'added', name: d.name }); listDevices(); });
+    client.addListener('deviceremoved', () => listDevices());
+    const connector = kind === 'wasm' ? new Wasm() : new bp.ButtplugBrowserWebsocketClientConnector('ws://127.0.0.1:12345');
+    await client.connect(connector);
+    mode = kind;
+    setStatus(kind === 'wasm' ? '已启动直连，请在弹窗里选设备' : '已连上 Intiface', 'ok');
+    await client.startScanning();
+    if (kind !== 'wasm') setTimeout(() => client.stopScanning().catch(() => {}), 8000);
+    listDevices();
+  } catch (e) {
+    setStatus('连接失败：' + (e && e.message || e), 'bad');
+    note({ ev: 'error', message: String(e && e.message || e) });
+  }
+}
+$('#wasm').onclick = () => connect('wasm');
+$('#intiface').onclick = () => connect('intiface');
+$('#level').oninput = () => { $('#levelv').textContent = $('#level').value + '%'; };
+
+// 与 heartlink 一致的换算：振动类取强度；抽动类换成往返速度
+async function setAll(level) {
+  const { bp } = lib;
+  for (const d of client.devices.values()) {
+    for (const f of d.features.values()) {
+      for (const o of Object.keys((f._feature && f._feature.Output) || {})) {
+        try {
+          if (o === 'HwPositionWithDuration') continue;
+          if (bp.DeviceOutput[o] && bp.DeviceOutput[o].percent) await f.runOutput(bp.DeviceOutput[o].percent(level));
+        } catch (e) { note({ ev: 'output-error', output: o, message: String(e && e.message || e) }); }
+      }
+    }
+  }
+}
+let timers = [];
+let stroke = null;
+function startStroke(level) {
+  const { bp } = lib;
+  if (stroke) clearTimeout(stroke);
+  if (level <= 0) { stroke = null; return; }
+  let up = false;
+  const tick = () => {
+    const half = Math.round((1500 - 1100 * level) / 2);
+    up = !up;
+    for (const d of client.devices.values()) for (const f of d.features.values()) {
+      if ((f._feature && f._feature.Output || {}).HwPositionWithDuration) f.runOutput(bp.DeviceOutput.HwPositionWithDuration.percent(up ? 0.95 : 0.05, half)).catch(() => {});
+    }
+    stroke = setTimeout(tick, half);
+  };
+  tick();
+}
+async function play(pattern) {
+  if (!client) { setStatus('先连接设备', 'bad'); return; }
+  timers.forEach(clearTimeout); timers = [];
+  const level = Number($('#level').value) / 100;
+  const frames = patternFrames(pattern, level, pattern === 'long' ? 2000 : null);
+  note({ ev: 'play', pattern, level, frames: frames.length });
+  for (const [at, v] of frames) timers.push(setTimeout(() => { setAll(v); startStroke(v); }, at));
+}
+document.querySelectorAll('[data-p]').forEach((b) => { b.onclick = () => play(b.dataset.p); });
+$('#stop').onclick = async () => {
+  timers.forEach(clearTimeout); timers = []; startStroke(0);
+  if (client) { try { await client.stopAllDevices(); note({ ev: 'stop' }); } catch (e) { note({ ev: 'stop-error', message: String(e && e.message || e) }); } }
+};
+window.addEventListener('pagehide', () => { if (client) client.stopAllDevices().catch(() => {}); });
+
+$('#report').onclick = () => {
+  const devices = client ? [...client.devices.values()].map((d) => ({ name: d.name, display: d.displayName || null, outputs: [...d.features.values()].map((f) => Object.keys((f._feature && f._feature.Output) || {})) })) : [];
+  const report = {
+    tbc: '0.3', tool: 'spec/tools/device-test.html', date: new Date().toISOString().slice(0, 10), route: mode, client: lib && lib.clientVersion,
+    browser: navigator.userAgent.replace(/\([^)]*\)/g, '').trim().slice(0, 120),
+    devices, patterns: PATTERNS,
+    checks: { allPatternsMoved: $('#c-move').checked, stopWorks: $('#c-stop').checked, endsAtZero: $('#c-zero').checked, levelsDistinct: $('#c-level').checked },
+    errors: log.filter((e) => /error/.test(e.ev)).slice(0, 10),
+  };
+  $('#out').value = JSON.stringify(report, null, 2);
+};
+</script>
+</body>
+</html>

@@ -142,6 +142,7 @@ note: observable record only; phase edges are page events; hr lags seconds; wris
 - 执行器用 `tbc.registerActuator(id, caps, handler)` 登记；生产者把模式展开成强度帧交给执行器。
 - 安全（必须）：默认关闭；用户强度上限；每个执行器的最小间隔；每条回复最多 3 个；一键全停；页面关闭或断线即停。
 - Intiface Central / buttplug 适配说明见 v0.3 §5.6（v4 协议，服务器不支持时回退 v3）。
+- **设备实测征集**：用 [`tools/device-test.html`](tools/device-test.html) 测你自己的设备（浏览器直连或 Intiface），按 [`docs/device-test-reports-zh.md`](docs/device-test-reports-zh.md) 提 PR 补充结果。目前只在模拟设备上验证过。
 
 ## 7. 一致性与校验
 
