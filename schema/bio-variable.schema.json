@@ -2,43 +2,305 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/kcgoofee-jpg/tavern-bio-context/schema/bio-variable.schema.json",
   "title": "TBC chat variable bio",
-  "description": "聊天变量 bio（v0.2 §3，v0.3 §3 增量）。未列出的字段允许存在，读者应忽略。",
+  "description": "聊天变量 bio（v0.2 §3，v0.3 §3 增量；v0.4 草案的 baselineInfo 只在 v 为 0.4 时检查）。未列出的字段允许存在，读者应忽略。",
   "type": "object",
-  "required": ["v", "source", "updatedAt", "mode"],
+  "required": [
+    "v",
+    "source",
+    "updatedAt",
+    "mode"
+  ],
   "properties": {
-    "v": { "type": "string", "pattern": "^0\\.\\d+$" },
-    "source": { "type": "string" },
-    "updatedAt": { "type": "integer" },
-    "mode": { "enum": ["backstage", "in-story", "device-aware", "author", "character"] },
-    "baseline": { "type": ["number", "null"] },
-    "prior": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/daily" }] },
-    "last": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/turn" }] },
-    "turns": { "type": "array", "maxItems": 20, "items": { "$ref": "#/$defs/turn" } },
-    "lastSignal": { "type": ["object", "null"] },
-    "daily": { "type": "object" },
-    "sensor": { "type": ["object", "null"] },
+    "v": {
+      "type": "string",
+      "pattern": "^0\\.\\d+$"
+    },
+    "source": {
+      "type": "string"
+    },
+    "updatedAt": {
+      "type": "integer"
+    },
+    "mode": {
+      "enum": [
+        "author",
+        "character"
+      ],
+      "description": "0.x 期间只写旧值；新名写在 view（v0.3 §1.1）。不得出现实现内部名。"
+    },
+    "baseline": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "prior": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/daily"
+        }
+      ]
+    },
+    "last": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/turn"
+        }
+      ]
+    },
+    "turns": {
+      "type": "array",
+      "maxItems": 20,
+      "items": {
+        "$ref": "#/$defs/turn"
+      }
+    },
+    "lastSignal": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "含模型思维链原文，会随聊天导出；生产者应该提供关闭开关（v0.3 §4.3）"
+    },
+    "daily": {
+      "type": "object"
+    },
+    "sensor": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
     "sensitive": {
       "type": "object",
-      "properties": { "body": { "type": ["object", "null"] }, "cycle": { "type": ["object", "null"] }, "journal": { "type": ["object", "null"] } }
+      "properties": {
+        "body": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "cycle": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "journal": {
+          "type": [
+            "object",
+            "null"
+          ]
+        }
+      }
+    },
+    "view": {
+      "enum": [
+        "backstage",
+        "in-story",
+        "device-aware"
+      ],
+      "description": "v0.3 起；读者以 view 为准"
     }
   },
   "$defs": {
     "daily": {
       "type": "object",
-      "required": ["source", "fields"],
-      "properties": { "source": { "type": "string" }, "date": { "type": ["string", "null"] }, "fields": { "type": "object" } }
+      "required": [
+        "source",
+        "fields"
+      ],
+      "properties": {
+        "source": {
+          "type": "string"
+        },
+        "date": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "fields": {
+          "type": "object"
+        }
+      }
     },
     "turn": {
       "type": "object",
-      "required": ["t"],
+      "required": [
+        "t"
+      ],
       "properties": {
-        "t": { "type": "integer" },
-        "readSec": { "type": ["number", "null"] },
-        "readPeak": { "type": ["number", "null"] },
-        "sendBpm": { "type": ["number", "null"] },
-        "baseline": { "type": ["number", "null"] },
-        "readPos": { "type": ["object", "null"] }
+        "t": {
+          "type": "integer"
+        },
+        "readSec": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "readPeak": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "sendBpm": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "baseline": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "readPos": {
+          "type": [
+            "object",
+            "null"
+          ]
+        }
+      }
+    },
+    "baselineInfo": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "v0.4 草案 §3：基线的来源与年龄",
+      "required": [
+        "method",
+        "ageSec"
+      ],
+      "properties": {
+        "method": {
+          "enum": [
+            "manual",
+            "rest",
+            "rolling-low",
+            "prior-rhr"
+          ]
+        },
+        "n": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "ageSec": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "noise": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "setAt": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "device": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)*$",
+          "maxLength": 32
+        },
+        "changedFrom": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "changedTurnsAgo": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "view"
+        ],
+        "properties": {
+          "view": {
+            "const": "backstage"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "mode": {
+            "const": "author"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "view"
+        ],
+        "properties": {
+          "view": {
+            "enum": [
+              "in-story",
+              "device-aware"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "mode": {
+            "const": "character"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "v": {
+            "const": "0.4"
+          }
+        },
+        "required": [
+          "v"
+        ]
+      },
+      "then": {
+        "properties": {
+          "baselineInfo": {
+            "$ref": "#/$defs/baselineInfo"
+          }
+        }
       }
     }
-  }
+  ]
 }

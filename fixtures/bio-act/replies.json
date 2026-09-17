@@ -82,5 +82,104 @@
       "BAD_INTENSITY",
       "BAD_MS"
     ]
+  },
+  {
+    "name": "思维链里的标签不算",
+    "text": "<think>先轻一点：<bio_act pattern=\"wave\"/></think>她靠近了些。<bio_act pattern=\"double\" intensity=\"0.3\"/>",
+    "acts": [
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "double",
+        "intensity": 0.3,
+        "durationMs": null
+      }
+    ],
+    "errors": []
+  },
+  {
+    "name": "上限在去掉思维链之后计算",
+    "text": "<thinking>计划三下：<bio_act/><bio_act/><bio_act/></thinking>正文。<bio_act pattern=\"long\" ms=\"2000\"/><bio_act pattern=\"double\"/>",
+    "acts": [
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "long",
+        "intensity": 0.5,
+        "durationMs": 2000
+      },
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "double",
+        "intensity": 0.5,
+        "durationMs": null
+      }
+    ],
+    "errors": []
+  },
+  {
+    "name": "代码与注释里的标签不算",
+    "text": "写法示例 `<bio_act/>`；\n```\n<bio_act pattern=\"wave\"/>\n```\n<!-- <bio_act/> -->正文<bio_act pattern=\"triple\"/>",
+    "acts": [
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "triple",
+        "intensity": 0.5,
+        "durationMs": null
+      }
+    ],
+    "errors": []
+  },
+  {
+    "name": "只有结束标签的思维链前缀",
+    "text": "规划：<bio_act/><bio_act/></think>\n正文<bio_act pattern=\"heartbeat\"/>",
+    "acts": [
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "heartbeat",
+        "intensity": 0.5,
+        "durationMs": null
+      }
+    ],
+    "errors": []
+  },
+  {
+    "name": "没有闭合的思维链",
+    "text": "正文<bio_act pattern=\"double\"/><thinking>还在想<bio_act/>",
+    "acts": [
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "double",
+        "intensity": 0.5,
+        "durationMs": null
+      }
+    ],
+    "errors": []
+  },
+  {
+    "name": "宿主推理模板的前后缀",
+    "opts": {
+      "reasoningMarkers": [
+        {
+          "prefix": "[推理]",
+          "suffix": "[/推理]"
+        }
+      ]
+    },
+    "text": "[推理]<bio_act/><bio_act/>[/推理]正文<bio_act pattern=\"pulse\" intensity=\"0.2\"/>",
+    "acts": [
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "pulse",
+        "intensity": 0.2,
+        "durationMs": null
+      }
+    ],
+    "errors": []
   }
 ]

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/kcgoofee-jpg/tavern-bio-context/schema/diagnostics.schema.json",
   "title": "TBC diagnostics (tbc.diagnostics())",
-  "description": "实现自报的运行状态与问题清单（v0.3 §4.2），供卡片与用户界面解释“为什么没联动”。不含心率序列与设备序列号。",
+  "description": "实现自报的运行状态与问题清单（v0.3 §4.2），供卡片与用户界面解释“为什么没联动”。不含心率序列、设备序列号与令牌。",
   "type": "object",
   "required": [
     "implementation",
@@ -60,13 +60,14 @@
             },
             {
               "type": "string",
-              "pattern": "^[a-z0-9][a-z0-9.-]*$",
+              "maxLength": 32,
+              "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)*$",
               "not": {
-                "pattern": "\\d{6,}"
+                "pattern": "\\d{6,}|(?:^|[.-])(?=[0-9a-f]*[0-9])[0-9a-f]{6,}(?:$|[.-])"
               }
             }
           ],
-          "description": "设备型号或名字前缀；不得含序列号（连续 6 位以上数字）"
+          "description": "设备型号（v0.3 §2.6）：小写字母数字，用 . 或 - 连接，≤ 32 字符；不得含序列号（连续 6 位以上数字，或长度 ≥ 6 且含数字的十六进制段）"
         },
         "transport": {
           "enum": [
@@ -168,6 +169,21 @@
             "null"
           ],
           "minimum": 0
+        },
+        "scan_world_info": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "块是否参与世界书扫描（v0.3 §2.7）"
+        },
+        "invalid_blocks": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "description": "自检不通过、改注入最小块的次数（v0.3 §2.5）"
         }
       }
     },
@@ -204,7 +220,11 @@
               "INJECTION_DISABLED",
               "GUIDE_INACTIVE",
               "MULTI_WINDOW",
-              "HOST_UNSUPPORTED"
+              "HOST_UNSUPPORTED",
+              "BAD_INPUT",
+              "BLOCK_INVALID",
+              "MULTI_PRODUCER",
+              "SCAN_COLLISION"
             ]
           },
           "severity": {
@@ -222,6 +242,28 @@
           }
         },
         "additionalProperties": false
+      }
+    },
+    "producer": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "当前生产者身份（v0.3 §4.6），同 tbc.producer()",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "impl": {
+          "type": "string"
+        },
+        "self": {
+          "type": "boolean",
+          "description": "是不是本实现"
+        }
       }
     }
   }

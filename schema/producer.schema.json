@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kcgoofee-jpg/tavern-bio-context/schema/producer.schema.json",
+  "title": "TBC producer identity (tbc.claimProducer / tbc.producer(), v0.3 §4.6)",
+  "type": "object",
+  "required": ["id", "version"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._:-]{0,31}$", "description": "生产者名，同块首行 source" },
+    "version": { "type": "string", "pattern": "^0\\.\\d+$", "description": "实现的协议版本；比较时按 . 切分逐段按整数比较" },
+    "impl": { "type": "string", "maxLength": 32, "pattern": "^[0-9A-Za-z.+-]+$", "description": "实现自己的版本号" }
+  }
+}

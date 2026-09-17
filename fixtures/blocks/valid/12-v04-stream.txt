@@ -1,0 +1,13 @@
+<bio_context v="0.4" mode="character" view="in-story" source="heartlink" device="whoop-5.0" transport="ble" cadence="1s" rr="yes" trigger="normal" date="2026-09-17" tz="+08:00" stream="yes" lag="6s">
+sent: 22:01:30
+scope: gen, read = previous reply; write, send = this message
+baseline: 68 bpm (rest, n=120; hrv 62 ms) | age 25m | noise ±3 | changed from rolling-low 2 turns ago
+history: read-peaks 84 90 · | read-dur 1:10 2:05 0:40 | read-peak-rel +12% +30% ·
+gen: 1:00 (ttft 10s, reasoning 2s, body 48s) | hr 72→88 [70–100] | cov 95%
+read: 40s | hr 88→84 [80–92] peak 92 @3s carryover | cov 96% | mean 85 (+25%) | above +20% 34s | tail-max 93 @+4s
+write: 20s, 48 chars, pauses 1, edits 0 | hr 84→80 [79–85] | cov 100% | away 8s
+away: -2:45..-2:15 hidden (read); -0:40..-0:32 unfocused (write)
+send: 80 bpm (+18%)
+stream(lag 6s): wait 12s (ttft 10s, reasoning 2s) | body 48s, 1500 chars | hr 72→88 [70–100] peak 100 @40s | pos ~1050/1500 chars, para 3/5 | cov 95%
+note: observable record only; phase edges are page events; hr lags seconds; wrist motion lowers confidence
+</bio_context>

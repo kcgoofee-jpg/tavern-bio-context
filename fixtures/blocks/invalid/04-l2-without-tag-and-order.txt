@@ -1,4 +1,4 @@
-<bio_context v="0.3" mode="in-story" source="heartlink">
+<bio_context v="0.3" mode="character" view="in-story" source="heartlink">
 sent: 20:31:05
 history: n/a
 baseline: n/a (session too short)

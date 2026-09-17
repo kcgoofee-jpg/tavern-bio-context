@@ -47,15 +47,46 @@ export function liftIntensity(intensity, floor) {
 }
 
 const num = (v) => (v == null || v === '' ? null : Number(v));
+const escapeRe = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+export const BIO_ACT_TAG_RE = /<bio_act\b[^>]*?\/?>/g;
+
+// v0.3 §5.3：不算动作的部分。解析前先去掉，每条回复的上限按剩下的标签计算。
+//   - 正文里的思维链：<think>…</think>、<thinking>…</thinking>（含带前缀的变体，如 <my_thinking>）
+//   - 只有结束标签的前缀（预设用 prefill 开头的情况）；没有闭合的思维链（一直到结尾）
+//   - 宿主推理模板的前后缀（opts.reasoningMarkers：[{ prefix, suffix }]）
+//   - 代码块（``` 或 ~~~）、行内代码、HTML 注释
+// 宿主单独给出的推理字段（reasoning）本来就不传进来，不解析。
+export function stripNonActionText(text, opts) {
+  let t = String(text || '');
+  t = t.replace(/(```|~~~)[\s\S]*?(?:\1|$)/g, ' ');
+  t = t.replace(/`[^`\n]*`/g, ' ');
+  t = t.replace(/<!--[\s\S]*?(?:-->|$)/g, ' ');
+  for (const mk of (opts && opts.reasoningMarkers) || []) {
+    if (!mk || !mk.prefix || !mk.suffix) continue;
+    t = t.replace(new RegExp(`${escapeRe(mk.prefix)}[\\s\\S]*?(?:${escapeRe(mk.suffix)}|$)`, 'g'), ' ');
+  }
+  t = t.replace(/<([a-z_]*think(?:ing)?)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, ' ');
+  t = t.replace(/^[\s\S]*?<\/[a-z_]*think(?:ing)?\s*>/i, ' ');
+  t = t.replace(/<[a-z_]*think(?:ing)?\b[^>]*>[\s\S]*$/i, ' ');
+  return t;
+}
+
+// 只作用于显示：去掉全部 <bio_act/> 标签（不管执行没执行）。不改消息原文，不依赖宿主的 HTML 清理。
+export function hideBioActs(text) {
+  return String(text || '').replace(BIO_ACT_TAG_RE, '');
+}
 
 // 返回 { acts: [...], errors: [...] }；超过上限（缺省 3，opts.maxPerReply 可改，最多 5）的部分丢弃并报错
+// opts.reasoningMarkers：宿主推理模板的前后缀（见 stripNonActionText）
 export function parseBioActs(text, opts) {
   const limit = opts && Number.isInteger(opts.maxPerReply) ? Math.min(MAX_PER_REPLY_LIMIT, Math.max(0, opts.maxPerReply)) : MAX_PER_REPLY;
   const acts = [];
   const errors = [];
   const re = /<bio_act\b([^>]*?)\/?>/g;
+  const body = stripNonActionText(text, opts);
   let m;
-  while ((m = re.exec(String(text || '')))) {
+  while ((m = re.exec(body))) {
     const a = {};
     const ar = /([a-zA-Z_]+)\s*=\s*"([^"]*)"/g;
     let x;

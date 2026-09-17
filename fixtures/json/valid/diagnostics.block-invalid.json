@@ -1,0 +1,9 @@
+{"implementation":"heartlink","version":"0.9.5","spec":"0.3","at":1789600000000,
+ "device":{"connected":true,"name":"polar-h10","transport":"ble","cadence_ms":1000,"rr":true,"last_sample_age_ms":900,"battery":null},
+ "mode":{"value":"backstage","source":"default"},
+ "producer":{"id":"heartlink","version":"0.3","impl":"0.9.5","self":true},
+ "injection":{"enabled":true,"last_at":1789600000000,"last_trigger":"normal","background_skipped":0,"scan_world_info":true,"invalid_blocks":1},
+ "problems":[
+  {"code":"BLOCK_INVALID","severity":"warn","message":"本轮块自检没通过，已改注入最小块","hint":"导出诊断并反馈给实现作者"},
+  {"code":"SCAN_COLLISION","severity":"info","message":"启用的世界书里有与块中英文词相同、未开整词匹配的关键字","hint":"给这些条目打开整词匹配，或关闭块参与扫描"}
+ ]}

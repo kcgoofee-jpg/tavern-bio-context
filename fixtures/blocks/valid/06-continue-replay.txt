@@ -1,0 +1,12 @@
+<bio_context v="0.3" mode="author" view="backstage" source="heartlink" transport="ble" cadence="1s" rr="no" trigger="continue" replay="continue" date="2026-09-17" tz="+08:00">
+sent: 21:04:40
+scope: replay of block composed at 21:04:40; continuing previous reply
+baseline: 72 bpm (manual, n=0)
+history: n/a
+gen: 41s | hr 74→75 [73–77] | cov 98%
+read: 2:10 | hr 75→81 [73–86] peak 86 @47s | cov 96%
+write: 18s, 52 chars, pauses 2, edits 1 | hr 81→78 [77–81] | cov 100%
+away: 21:02:30–21:03:05 idle [74–76]
+send: 78 bpm (+8%)
+note: observable record only; phase edges are page events; hr lags seconds; wrist motion lowers confidence
+</bio_context>

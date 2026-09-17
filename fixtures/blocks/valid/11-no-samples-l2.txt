@@ -1,0 +1,15 @@
+<bio_context v="0.3" mode="character" view="device-aware" source="heartlink" trigger="normal" date="2026-09-17" tz="+08:00">
+sent: 21:50:00
+scope: gen, read = previous reply; write, send = this message
+baseline: n/a (no samples)
+history: n/a
+gen: 20s | n/a (no samples)
+read: 1:00 | hr n/a (no samples)
+write: 9s, 20 chars, pauses 0, edits 0 | n/a (no samples)
+away: none
+send: n/a (no samples)
+day(whoop-api, 2026-09-17 so far): strain 6.2 | kcal 1100
+body(whoop-api, 2026-09-01) [L2]: height 178 cm | weight 72.5 kg
+haptics(heartlink): on | cap 60% | profile slow-burn | actuators 1
+note: observable record only; phase edges are page events; hr lags seconds; wrist motion lowers confidence
+</bio_context>

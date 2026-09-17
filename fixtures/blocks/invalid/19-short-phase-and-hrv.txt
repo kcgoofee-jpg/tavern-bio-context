@@ -1,0 +1,12 @@
+<bio_context v="0.3" mode="author" view="backstage" source="heartlink" device="polar-h10" transport="ble" cadence="1s" rr="yes" trigger="normal">
+sent: 21:04:40
+scope: gen, read = previous reply; write, send = this message
+baseline: 72 bpm (rest, n=200)
+history: n/a
+gen: 8s | hr 74→75 [73–80] peak 80 @5s | cov 98%
+read: 20s | hr 75→81 [73–86] peak 86 @12s | cov 96% | rr-loss 2% | hrv 40 ms | flag: hr-high
+write: 40s, 52 chars, pauses 2, edits 1 | hr 81→78 [77–81] | cov 100% | rr-loss 12% | hrv 30 ms
+away: none
+send: 78 bpm (+8%)
+note: observable record only; phase edges are page events; hr lags seconds; wrist motion lowers confidence
+</bio_context>

@@ -9,7 +9,6 @@ away: 08:05:10–08:09:40 hidden; 08:10:00–08:11:30 idle [66–70]
 send: 69 bpm (+1%)
 pressure(civet, 100ms): read 7.9→12.3 kPa peak 14.1 @41s | write 8.0→8.2 kPa
 env(mijia, 10s): 26.3°C 58% rh
-body(whoop-api, 09-01) [L2]: height 178 cm | weight 72.5 kg
 note: observable record only; phase edges are page events; hr lags seconds; wrist motion lowers confidence
-warn: device silent >10s at send; recent phases may be incomplete
+warn: device silent over 10s at send; recent phases may be incomplete
 </bio_context>

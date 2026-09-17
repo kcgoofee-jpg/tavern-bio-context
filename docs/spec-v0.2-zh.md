@@ -37,7 +37,7 @@
 | prior（可选） | `prior(<source>, <date>): recovery 67 \| hrv 69.6 ms \| rhr 59 bpm \| sleep 6.5 h \| spo2 95.5% \| skin 33.6°C` | 非实时来源的日级先验，必须带日期；只写拿到的字段 |
 | history | `history: read-peaks … \| read-dur … \| hrv …` 或 `history: n/a` | 最近 ≤ 8 轮 |
 | gen | `gen: 79s (ttft 56s, reasoning 8s, body 15s) \| hr 80→75 [74–80] \| cov 96%` | 看生成 |
-| read | `read: 2:03 \| hr 75→78 [70–78] peak 83 @32s \| cov 94% \| rr-loss 12% \| hrv 95 ms [\| flag: too-long (likely away)]` | 读回复 |
+| read | `read: 2:03 \| hr 75→78 [70–83] peak 83 @32s \| cov 94% \| rr-loss 12% \| hrv 95 ms [\| flag: too-long (likely away)]` | 读回复（勘误 2026-09-18：原示例区间写成 `[70–78]`，与峰值矛盾；区间是全部样本的最小值和最大值，峰值不超过最大值） |
 | read-pos（可选） | `read-pos: peak ~62% (~870/1400 chars, para 4/7) @6 cps est\|cal` 或 `read-pos: partial (read time covers ~30% of 1000 chars @6 cps est), peak at 68% of read time` | 峰值位置；`partial` = 读时长 × 阅读速度 < 0.8 × 回复字数 |
 | write | `write: 10s, 45 chars, pauses 1, edits 0 \| hr 78→75 [75–78] \| cov 100% \| rr-loss 100%` | 写消息 |
 | away | `away: HH:MM:SS–HH:MM:SS hidden\|idle [min–max]; …` 或 `away: none` | 离开区间 |

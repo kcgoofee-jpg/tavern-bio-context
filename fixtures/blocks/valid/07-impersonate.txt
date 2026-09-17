@@ -1,0 +1,12 @@
+<bio_context v="0.3" mode="character" view="in-story" source="heartlink" transport="bridge" cadence="1s" rr="no" trigger="impersonate" date="2026-09-18" tz="-05:00">
+sent: 00:00:04
+scope: gen, read = previous reply; no reader message yet
+baseline: 66 bpm (rolling-low, n=18)
+history: read-peaks 71 · 73
+gen: 22s | hr 67→69 [66–70] | cov 95%
+read: 1:05 | hr 69→72 [68–74] | cov 91%
+write: n/a (impersonate)
+away: 23:58:40–23:59:30 hidden
+send: 70 bpm (+6%)
+note: observable record only; phase edges are page events; hr lags seconds; wrist motion lowers confidence
+</bio_context>

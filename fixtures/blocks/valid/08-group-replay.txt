@@ -1,0 +1,12 @@
+<bio_context v="0.3" mode="character" view="in-story" source="heartlink" transport="ble" cadence="1s" rr="no" trigger="normal" replay="group" perceiver="小影" date="2026-09-17" tz="+08:00">
+sent: 21:20:00
+scope: gen, read = previous reply; write, send = this message
+baseline: 71 bpm (prior-rhr)
+history: n/a
+gen: 30s | hr 72→73 [71–74] | cov 97%
+read: 1:40 | hr 73→77 [72–80] peak 80 @52s | cov 94%
+write: 25s, 60 chars, pauses 1, edits 2 | hr 77→75 [74–77] | cov 100%
+away: none
+send: 75 bpm (+6%)
+note: observable record only; phase edges are page events; hr lags seconds; wrist motion lowers confidence
+</bio_context>

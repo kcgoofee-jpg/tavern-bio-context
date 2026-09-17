@@ -10,7 +10,7 @@
 | §2 非心率 kind 进块（`<kind>(source, cadence):` 行） | 0.8.0 已实现（页面内 push） |
 | §3 `device:` 行 | 0.8.0 已实现 |
 | §4 头部属性、`cov`、`partial` | 未做（v0.2 定稿后） |
-| §5 本机桥 WebSocket | 未做（0.9） |
+| §5 本机桥 WebSocket | 未做（0.9）；发布前必须先实现 v0.3 §6 的安全要求 |
 | §6 词汇、§7 安全 | 文档 |
 
 ## 0. 一句话
@@ -46,14 +46,19 @@ type Sample = {
   source: string;         // 'heartlink' | 'civet' | 'eom' | 'buttplug' | 'shortcuts' | …
   kind: 'hr' | 'rr' | 'pressure' | 'temperature' | 'spo2' | 'stress' | 'button' | 'battery' | string;
   value: number;          // hr: bpm；rr: 秒；pressure: kPa（DG-LAB 灵猫）或设备原始单位（buttplug 不统一，见下）
-  unit?: string;          // 'bpm' | 's' | 'kPa' | 'raw'
+  unit?: string;          // 'bpm' | 's' | 'kpa' | 'raw'（标识规则，小写）
   cadence?: string;       // '1s' | '100ms' | '30s' | '300s'
   quality?: number;       // 0–1，来源自己的置信度（腕动、丢包）
-  device?: string;        // 'whoop-5.0' | 'civet-47L124000' | 'edge-o-matic-3000'
+  device?: string;        // 型号，不含序列号：'whoop-5.0' | 'civet' | 'edge-o-matic-3000'
+  transport?: string;     // 'ble' | 'bridge' | 'push' | 'api' | 'bus'（v0.3）
+  lagMs?: number;         // 数据产生到到达的延迟（v0.3）
 };
 ```
 
 规则：
+- 字符串字段按 v0.3 §4.4 校验：`source`、`kind`、`unit` 用标识规则 `^[a-z0-9][a-z0-9._:-]{0,31}$`，`device` 按 v0.3 §2.6；不合规时 `push` 返回 `false`，样本被丢弃。参考实现 `tools/sanitize.mjs` 的 `checkSample()`。
+- `transport` 为 `push` / `bridge` / `api`，或带 `lagMs` 时，`t` 必须提供，生产者按 `t` 归入相位；`t` 早于 24 小时前或晚于 5 秒后的样本被拒收（v0.3 §4.5）。
+- 同一时刻只有一个 `hr` 主来源（缺省：页面蓝牙 → 本机桥 → 总线其他来源），其余来源的 `hr` 不进相位统计。
 - 心率仍是 best practice：`kind: 'hr'` 的样本进入 v0.1 全部相位统计；`rr` 进 HRV。
 - 其它 kind 按来源分组，块里各自一行（§4），**不做跨 kind 的合成指标**（不把气压和心率算成一个"兴奋度"）。
 - 稀疏来源（cadence ≥ 30 s）：不进 `series`，相位行样本 < 5 写 `n/a (sparse)`。
@@ -98,7 +103,7 @@ device: coyote ch-A 35/100 "经典" 12s | ch-B 0
 device: handy stroke 40% 1.2 Hz since 00:41:10
 ```
 
-约束：一行 ≤ 120 字符；只写事实（强度、模式、持续时间），不写"用户很爽"；不写设备序列号、令牌、IP。`mode="author"` 时这些行同样是幕后信息，角色不知道；`mode="character"` 时允许角色察觉设备带来的可观察反应，仍不点名设备。
+约束：一行 ≤ 120 字符；只写事实（强度、模式、持续时间），不写"用户很爽"；不写设备序列号、令牌、IP。生产者按 v0.3 §4.4 清洗返回值（删掉尖括号和控制字符、换行变空格、截断到 120 字符）后再写进块。`mode="author"` 时这些行同样是幕后信息，角色不知道；`mode="character"` 时允许角色察觉设备带来的可观察反应，仍不点名设备。
 
 ## 4. 块格式增量（相对 v0.1）
 
@@ -133,7 +138,7 @@ window.addEventListener('bio:sample', (e) => { /* e.detail: Sample，实时 */ }
 
 推荐用法：把 `summary.readPeak / summary.baseline` 作为强度上限的缩放系数，而不是直接映射；`hrv` 明显低于 `summary.baseline.hrv` 时降档。协议不规定映射曲线。
 
-跨进程（Intiface 插件、MCP 服务器、Windows 桥、MultiFunPlayer 插件）：本机桥（heartlink 0.9）在 `ws://127.0.0.1:27130/tbc/v0.2` 推送同样的消息：
+跨进程（Intiface 插件、MCP 服务器、Windows 桥、MultiFunPlayer 插件）：本机桥（heartlink 0.9 规划中）在 `ws://127.0.0.1:27130/tbc/v0.2` 推送同样的消息。**连接前必须完成 v0.3 §6 的握手**（Origin 白名单、配对令牌、按权限授权）；读事件需要 `read` 权限，推样本和上下文需要 `push`，驱动执行器需要单独勾选的 `actuate`：
 
 ```json
 { "event": "bio:inject", "detail": { "text": "<bio_context …>", "mode": "author", "summary": { … } } }
@@ -165,7 +170,7 @@ window.addEventListener('bio:sample', (e) => { /* e.detail: Sample，实时 */ }
 2. 必须有全局停止，且页面卸载 / 桥断线 = 停止。
 3. 分享令牌、API key、设备 ID 不得出现在模型可见文本（块、世界书、消息）里。
 4. 只读发现优先：不认识的设备只扫描广播，不写特征。
-5. 生理数据只在本机流转；桥默认只绑 127.0.0.1。
+5. 生理数据只在本机流转；桥只绑回环地址，并且必须实现 v0.3 §6（校验 `Host` 与 `Origin`、配对令牌、`read` / `push` / `actuate` 分权限、可吊销）。没做完这些的桥不得发布。
 
 ## 8. 生态里现成能接的东西（男性向设备为主，2026-09 核对）
 
@@ -187,5 +192,5 @@ window.addEventListener('bio:sample', (e) => { /* e.detail: Sample，实时 */ }
 ## 9. 与 v0.1 的兼容
 
 - v0.1 的块、变量、事件全部保留；v0.2 只加不改。
-- 生成器看到 `window.tbc` 不存在时自己创建；两个实现同时存在时以 `version` 高者为准，低者只 `push` 不生成块。
+- 生成器看到 `window.tbc` 不存在时自己创建；两个实现同时存在时以 `version` 高者为准，低者只 `push` 不生成块。版本按 `.` 切分逐段按整数比较；v0.3 起用 `tbc.claimProducer()` 显式确定谁生成块（v0.3 §4.6）。
 - 世界书文案：`device:` 与 `<kind>(…)` 行各加一句读法即可。

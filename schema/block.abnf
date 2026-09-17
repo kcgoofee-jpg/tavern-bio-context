@@ -1,53 +1,111 @@
-; Tavern Bio-Context 注入块语法（v0.3 草案；兼容 v0.2）
-; 参考解析器：tools/block.mjs；样例：fixtures/blocks/
-; 说明：字符串字面量区分大小写（RFC 7405 %s）；行尾为 LF；"—"、"→"、"–"、"·"、"×"、"~" 为 UTF-8 字符。
+; Tavern Bio-Context 注入块语法（v0.3 定稿候选；兼容 v0.2）
+; 参考解析器：tools/block.mjs；样例：fixtures/blocks/；v0.4 草案的增量语法见 docs/spec-v0.4-draft-zh.md
+; 说明：字符串字面量区分大小写（RFC 7405 %s）；行尾为 LF；"—"、"→"、"–"、"·"、"×"、"~"、"±" 为 UTF-8 字符。
+;
+; 分两层：
+;   1. 通用语法（所有读者必须能处理）：首行 + 任意多条通用行 + 闭合标签。读者按行名取值，
+;      不得因为行的顺序、未知行、已知行里的未知 " | " 段而拒收整块（docs/spec-v0.3-draft-zh.md §2.3）。
+;   2. 登记语法（生产者必须遵守）：已知行的主体格式与顺序。固定区从 v0.3 起冻结，新行一律进扩展区。
 
-block          = header LF fixed-zone *(extension-line LF) [series-line LF] note-line LF *(warn-line LF) %s"</bio_context>"
+; ---------- 1. 通用语法 ----------
+
+block          = header LF *(line LF) %s"</bio_context>"
+; 整段文本里恰好一个 "<bio_context" 和一个 "</bio_context>"（单块保证，§2.5）
 
 header         = %s"<bio_context" 1*(SP attribute) ">"
 attribute      = attr-name "=" DQUOTE attr-value DQUOTE
-attr-name      = %s"v" / %s"mode" / %s"source" / %s"device" / %s"transport" / %s"cadence" / %s"rr" / %s"trigger" / %s"perceiver" / x-name
-attr-value     = *(%x20-21 / %x23-3B / %x3D / %x3F-10FFFF)      ; 不含 " < >
-; 必需：v、mode、source。取值见 docs/conformance-zh.md §4 登记表。
+attr-name      = LCALPHA *(LCALPHA / DIGIT / "-" / "_")
+attr-value     = *(%x20-21 / %x23-3B / %x3D / %x3F-7E / UTF8-NONASCII)   ; 不含 " < > 与控制字符
+; 必需：v、mode、source。登记值见 docs/conformance-zh.md §4.1。未登记属性读者忽略；自定义用 x_ 前缀。
+
+line           = name ["(" meta ")"] [%s" [L2]"] ": " body
+name           = LCALPHA *(LCALPHA / DIGIT / "-" / "_")
+meta           = 1*(%x20-27 / %x2A-3B / %x3D / %x3F-7E / UTF8-NONASCII)  ; 不含 ( ) < >
+body           = 1*(%x20-3B / %x3D / %x3F-7E / UTF8-NONASCII)            ; 不含 < > 与换行
+; 已知行的 body 一律是：主体 *(" | " 段)。读者忽略不认识的段。
+
+; ---------- 2. 登记语法（生产者） ----------
+
+registered     = header LF fixed-zone *(extension-line LF) [series-line LF] note-line LF *(warn-line LF) %s"</bio_context>"
+               / header LF sent-line LF note-line LF minimal-warn LF %s"</bio_context>"
+; 第二种是自检失败时的最小块（§2.5）
 
 fixed-zone     = sent-line LF [scope-line LF] baseline-line LF [prior-line LF] history-line LF
                  gen-line LF read-line LF [read-pos-line LF] write-line LF away-line LF send-line LF
+; 固定区冻结：v0.3 之后不再往这里加行。
+
 sent-line      = %s"sent: " clock
-scope-line     = %s"scope: gen, read = previous reply; write, send = this message"   ; v0.3
-baseline-line  = %s"baseline: " ( bpm SP "(" method [", n=" 1*DIGIT] ["; hrv " 1*DIGIT " ms"] ")" / na-reason )
-method         = %s"quiet-median" / %s"p20" / %s"manual"
+scope-line     = %s"scope: " scope-text                                  ; v0.3，按 trigger 选一句（§1.3）
+scope-text     = %s"gen, read = previous reply; write, send = this message"          ; normal
+               / %s"gen, read = discarded reply (not in context); no new message"    ; swipe、regenerate
+               / %s"gen, read = previous reply; no reader message yet"               ; impersonate
+               / %s"replay of block composed at " clock %s"; continuing previous reply" ; continue
+baseline-line  = %s"baseline: " ( bpm SP "(" method [", n=" 1*DIGIT] ["; hrv " 1*DIGIT " ms"] ")" / na-reason ) *segment
+method         = %s"manual" / %s"rest" / %s"rolling-low" / %s"prior-rhr"           ; v0.3 登记
+               / %s"quiet-median" / %s"p20"                                         ; 已弃用别名（v0.4 起生产者不得输出）
 prior-line     = %s"prior(" source-id ", " date ")" ": " fields
-history-line   = %s"history: " ( %s"n/a" / %s"read-peaks " values [" | read-dur " values] [" | hrv " values] )
-gen-line       = %s"gen: " ( %s"n/a" / dur [SP "(" text ")"] " | " hr-part *segment )
-read-line      = %s"read: " ( %s"n/a" [SP "(" text ")"] / dur " | " hr-part *segment )
-read-pos-line  = %s"read-pos: " text
-write-line     = %s"write: " ( na-reason / %s"n/a" / dur ", " 1*DIGIT " chars, pauses " 1*DIGIT ", edits " 1*DIGIT " | " hr-part *segment )
+history-line   = %s"history: " ( %s"n/a" / %s"read-peaks " values ) *segment     ; 已登记段：read-dur、hrv
+gen-line       = %s"gen: " ( na-opt / dur [SP "(" text ")"] " | " hr-part ) *segment
+read-line      = %s"read: " ( na-opt / dur " | " hr-part ) *segment
+read-pos-line  = %s"read-pos: " ( %s"peak ~" 1*DIGIT "% (~" 1*DIGIT "/" 1*DIGIT %s" chars, para " 1*DIGIT "/" 1*DIGIT ") @" cps
+                 / %s"partial (read time covers ~" 1*DIGIT %s"% of " 1*DIGIT %s" chars @" cps "), peak at " 1*DIGIT %s"% of read time" )
+cps            = 1*DIGIT ["." DIGIT] %s" cps " (%s"est" / %s"cal")                 ; 生产者应该取整（B-2）
+write-line     = %s"write: " ( na-opt / dur ", " 1*DIGIT %s" chars, pauses " 1*DIGIT %s", edits " 1*DIGIT " | " hr-part ) *segment
 away-line      = %s"away: " ( %s"none" / away-span *("; " away-span) )
 away-span      = clock "–" clock SP (%s"hidden" / %s"idle") [SP range]
-send-line      = %s"send: " ( na-reason / %s"n/a" / bpm [SP "(" ("+" / "-") 1*DIGIT "%)"] )
+send-line      = %s"send: " ( na-opt / bpm [SP "(" ("+" / "-") 1*DIGIT "%)"] ) *segment
+
+; 相位行已登记的段：cov、rr-loss、hrv、flag、off-wrist
+phase-segment  = %s" | cov " 1*3DIGIT "%" / %s" | rr-loss " 1*3DIGIT "%" / %s" | hrv " 1*DIGIT %s" ms"
+               / %s" | flag: " flag-name [SP "(" text ")"] / %s" | off-wrist " 1*DIGIT ":" 2DIGIT
+flag-name      = %s"too-long" / %s"hr-high"                                          ; 未登记值读者忽略
 
 extension-line = device-line / named-line
-device-line    = %s"device: " 1*120(%x20-3B / %x3D / %x3F-10FFFF)
-named-line     = line-name "(" text ")" [%s" [L2]"] ": " fields
+device-line    = %s"device: " 1*120(%x20-3B / %x3D / %x3F-7E / UTF8-NONASCII)
+named-line     = line-name "(" meta ")" [%s" [L2]"] ": " fields
 line-name      = %s"sleep" / %s"day" / %s"workout" / %s"trend" / %s"wear" / %s"button" / %s"motion" / %s"sensor"
-               / %s"body" / %s"cycle" / %s"journal" / %s"env" / kind / x-name
-; body、cycle、journal 必须带 " [L2]"；其他行不得带。workout 最多 3 行。
+               / %s"body" / %s"cycle" / %s"journal" / %s"env" / %s"haptics" / %s"feedback" / kind / x-name
+; body、cycle、journal 必须带 " [L2]"；其他行不得带。workout 最多 3 行。kind ppg 不进块。
+; prior、sleep、day、body、cycle、journal 括号里的日期写 YYYY-MM-DD（MM-DD 已弃用，读者仍接受）。
+; sensor、wear、button、motion 与 kind 行括号里的第一个名字不得含序列号（§2.6）。
+
+haptics-body   = %s"off" / %s"on | cap " 1*3DIGIT %s"% | profile " profile [%s" | actuators " 1*DIGIT]
+profile        = %s"slow-burn" / %s"steady" / %s"frenzy" / %s"max"
+
+feedback-body  = [acts-seg] *(" | " event-seg) [" | +" 1*DIGIT %s" more"]      ; 至少一段；事件段 ≤ 8
+acts-seg       = %s"acts " 1*DIGIT %s" sent, " 1*DIGIT %s" done" [", " 1*DIGIT %s" cut"] [", " 1*DIGIT %s" pending"] [", " 1*DIGIT %s" refused"]
+; 必须满足 sent = done + cut + pending + refused
+event-seg      = action SP phase %s" @" 1*DIGIT "s" [" (" fb-note ")"]
+action         = %s"stop by " (%s"reader" / %s"safeword" / %s"device") / %s"stronger +" 1*3DIGIT "%" / %s"weaker -" 1*3DIGIT "%"
+               / %s"pace " profile / %s"replay " 1*LCALPHA / %s"skip"
+phase          = %s"gen" / %s"read" / %s"write" / %s"send"                          ; send 只写 @0s
+fb-note        = stop-reason [", " ref] / ref
+stop-reason    = %s"disconnected" / %s"deadline" / %s"heat-limit" / %s"rate-limit" / %s"other"   ; 只用于 stop by device
+ref            = %s"reply -" 1*DIGIT [%s", act " 1*DIGIT] [", " 1*DIGIT ["." DIGIT] %s"s in"]
+; 旧写法 "act N, Ns in" 读者仍接受
 
 series-line    = %s"series(" 1*DIGIT %s"s from " clock "): " values
 note-line      = %s"note: observable record only; phase edges are page events; hr lags seconds; wrist motion lowers confidence"
 warn-line      = %s"warn: " text
+minimal-warn   = %s"warn: block-invalid"
 
-hr-part        = %s"hr " 1*DIGIT "→" 1*DIGIT SP range [%s" peak " 1*DIGIT " @" 1*DIGIT "s"] / %s"n/a" [SP "(" text ")"]
-segment        = " | " 1*(%x20-7B / %x7D-10FFFF)
+hr-part        = %s"hr " 1*DIGIT "→" 1*DIGIT SP range [%s" peak " 1*DIGIT " @" 1*DIGIT "s"]
+               / [%s"hr "] na-opt
+; peak 是平滑值，必须落在 range 内；range 是本相位全部样本的最小值和最大值
+segment        = " | " 1*(%x20-3B / %x3D / %x3F-7B / %x7D-7E / UTF8-NONASCII)   ; 不含 | < >
 range          = "[" 1*DIGIT "–" 1*DIGIT "]"
 bpm            = 1*3DIGIT %s" bpm"
+na-opt         = %s"n/a" [SP "(" text ")"]
 na-reason      = %s"n/a (" text ")"
 clock          = 2DIGIT ":" 2DIGIT ":" 2DIGIT
 dur            = 1*DIGIT "s" / 1*DIGIT ":" 2DIGIT
-date           = 1*(%x20-28 / %x2A-10FFFF)
-source-id      = 1*(ALPHA / DIGIT / "-" / "_" / ".")
-kind           = 1*(%x61-7A / "_")
-x-name         = %s"x_" 1*(%x61-7A / DIGIT / "_")
+date           = 4DIGIT "-" 2DIGIT "-" 2DIGIT / 2DIGIT "-" 2DIGIT                   ; 后者已弃用
+source-id      = LCALPHA-DIGIT *31(LCALPHA / DIGIT / "." / "_" / ":" / "-")
+kind           = LCALPHA *(LCALPHA / "_")
+x-name         = %s"x_" 1*(LCALPHA / DIGIT / "_")
 values         = 1*(DIGIT / SP / ":" / "·")
 fields         = text
-text           = 1*(%x20-10FFFF)
+text           = 1*(%x20-3B / %x3D / %x3F-7E / UTF8-NONASCII)                 ; 不含 < >
+LCALPHA        = %x61-7A
+LCALPHA-DIGIT  = %x61-7A / DIGIT
+UTF8-NONASCII  = %x80-10FFFF

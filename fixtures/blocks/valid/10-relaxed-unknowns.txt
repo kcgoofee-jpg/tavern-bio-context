@@ -1,0 +1,17 @@
+<bio_context v="0.3" mode="author" view="backstage" source="heartlink" transport="ble" cadence="1s" rr="yes" trigger="normal" x_build="lab" date="2026-09-17" tz="+08:00">
+sent: 21:40:00
+scope: gen, read = previous reply; write, send = this message
+x_session: 12
+baseline: 72 bpm (quiet-median, n=300; hrv 60 ms) | x_window 90m
+prior(whoop-api, 09-17): recovery 58
+history: read-peaks 80 · 82 | read-dur 1:10 · 1:30 | x_mark 1
+gen: 35s | hr n/a | cov 0%
+read: 1:30 | hr 74→80 [72–84] peak 84 @40s | cov 92% | x_lux 120 | hrv 50 ms
+read-pos: peak ~45% (~430/950 chars, para 2/5) @6.5 cps cal
+write: 12s, 30 chars, pauses 0, edits 0 | hr 80→78 [77–80] | cov 100%
+away: none
+send: 78 bpm (+8%)
+lux: 120
+x_note(lab): calibration run
+note: observable record only; phase edges are page events; hr lags seconds; wrist motion lowers confidence
+</bio_context>

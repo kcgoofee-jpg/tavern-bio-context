@@ -1,0 +1,13 @@
+<bio_context v="0.3" mode="author" view="backstage" source="heartlink" cadence="1s">
+sent: 21:04:40
+scope: gen, read = previous reply; write, send = this message
+baseline: 72 bpm (rest, n=200)
+history: n/a
+gen: 41s | hr 74→75 [73–77] peak 83 @20s | cov 98%
+read: 2:10 | hr 75→81 [73–86] | cov 96%
+read-pos: peak ~38% (~540/1420 chars, para 3/8) @6 cps est
+write: 18s, 52 chars, pauses 2, edits 1 | hr 81→78 [77–84] peak 84 @5s | cov 50%
+away: none
+send: 78 bpm (+8%)
+note: observable record only; phase edges are page events; hr lags seconds; wrist motion lowers confidence
+</bio_context>

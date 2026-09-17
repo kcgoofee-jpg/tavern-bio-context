@@ -1,0 +1,13 @@
+<bio_context v="0.3" mode="character" view="in-story" source="heartlink" device="polar-h10" transport="ble" cadence="1s" rr="yes" trigger="swipe" date="2026-09-17" tz="+08:00">
+sent: 21:09:12
+scope: gen, read = discarded reply (not in context); no new message
+baseline: 70 bpm (rest, n=96)
+history: read-peaks 78 84 86 | read-dur 1:52 2:10 0:48
+gen: 38s (ttft 10s, body 28s) | hr 76→77 [75–79] | cov 99%
+read: 0:48 | hr 77→80 [76–82] peak 82 @31s | cov 97%
+write: n/a (no new message)
+away: none
+send: n/a (no new message)
+feedback(heartlink): acts 2 sent, 1 done, 1 cut | skip read @20s (reply -1, act 2) | replay heartbeat read @25s (reply -2)
+note: observable record only; phase edges are page events; hr lags seconds; wrist motion lowers confidence
+</bio_context>

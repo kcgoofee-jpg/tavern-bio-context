@@ -1,50 +1,104 @@
 #!/usr/bin/env node
-// L1 检查：块样例、JSON 样例、Schema 自洽。用法：node tools/validate.mjs [块文件…]
-// 带参数时只校验给定的块文件（实现可以用它检查自己生成的块）。
+// L1 检查：块样例、JSON 样例、Schema 自洽、清洗规则。
+// 用法：node tools/validate.mjs                       全部样例
+//       node tools/validate.mjs [--reader] 块文件…     只校验给定的块（缺省按生产者档；--reader 按读者档）
 import { readFileSync, readdirSync } from 'node:fs';
 import { join, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
-import { parseBlock } from './block.mjs';
-import { parseBioActs, patternFrames, PATTERNS, PROFILES, resolveSettings, liftIntensity } from './bio-act.mjs';
+import { parseBlock, compareVersions, effectiveView } from './block.mjs';
+import * as sanitize from './sanitize.mjs';
+import { parseBioActs, patternFrames, PATTERNS, PROFILES, resolveSettings, liftIntensity, hideBioActs } from './bio-act.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 let failed = 0;
 const fail = (msg) => { failed++; console.log('✗ ' + msg); };
 const pass = (msg) => console.log('✓ ' + msg);
 const show = (r) => [...r.errors.map((e) => `    error L${e.line} ${e.code}: ${e.message}`), ...r.warnings.map((w) => `    warn  L${w.line} ${w.code}: ${w.message}`)].join('\n');
+const codesOf = (list) => [...new Set(list.map((x) => x.code))];
 
-const args = process.argv.slice(2);
-if (args.length) {
-  for (const f of args) {
-    const r = parseBlock(readFileSync(f, 'utf8'));
-    (r.ok ? pass : fail)(`${f}${r.ok ? '' : '\n' + show(r)}`);
+const argv = process.argv.slice(2);
+const files = argv.filter((a) => !a.startsWith('--'));
+if (files.length) {
+  const profile = argv.includes('--reader') ? 'reader' : 'producer';
+  for (const f of files) {
+    const r = parseBlock(readFileSync(f, 'utf8'), { profile });
+    (r.ok ? pass : fail)(`${f}（${profile}）${r.ok ? '' : '\n' + show(r)}`);
     if (r.ok && r.warnings.length) console.log(show(r));
   }
   process.exit(failed ? 1 : 0);
 }
 
-// 块样例
+// 块样例：合规样例在生产者档和读者档都必须通过；expected.json 里列出的警告必须出现
 const bdir = join(ROOT, 'fixtures/blocks');
+const validExpected = JSON.parse(readFileSync(join(bdir, 'valid/expected.json'), 'utf8'));
 for (const f of readdirSync(join(bdir, 'valid')).filter((x) => x.endsWith('.txt')).sort()) {
-  const r = parseBlock(readFileSync(join(bdir, 'valid', f), 'utf8'));
-  r.ok ? pass(`valid/${f}${r.warnings.length ? '（有警告）\n' + show(r) : ''}`) : fail(`valid/${f} 应通过\n${show(r)}`);
+  const text = readFileSync(join(bdir, 'valid', f), 'utf8');
+  const r = parseBlock(text);
+  const rr = parseBlock(text, { profile: 'reader' });
+  const want = validExpected[f]?.warnings;
+  const got = codesOf(r.warnings);
+  if (!r.ok) { fail(`valid/${f} 应通过\n${show(r)}`); continue; }
+  if (!rr.ok) { fail(`valid/${f} 读者档应通过\n${show(rr)}`); continue; }
+  if (want) {
+    const missing = want.filter((c) => !got.includes(c));
+    const extra = want.length === 0 ? got : [];
+    if (missing.length) { fail(`valid/${f} 缺少预期警告 ${missing.join(', ')}\n${show(r)}`); continue; }
+    if (extra.length) { fail(`valid/${f} 不应有警告，得到 ${extra.join(', ')}\n${show(r)}`); continue; }
+  }
+  pass(`valid/${f}${got.length ? ` （警告 ${got.join(', ')}）` : ''}`);
 }
+
 const expected = JSON.parse(readFileSync(join(bdir, 'invalid/expected.json'), 'utf8'));
 for (const f of readdirSync(join(bdir, 'invalid')).filter((x) => x.endsWith('.txt')).sort()) {
-  const r = parseBlock(readFileSync(join(bdir, 'invalid', f), 'utf8'));
-  const codes = new Set(r.errors.map((e) => e.code));
-  const want = expected[f] || [];
-  const missing = want.filter((c) => !codes.has(c));
-  if (r.ok) fail(`invalid/${f} 应失败但通过了`);
-  else if (missing.length) fail(`invalid/${f} 缺少预期错误 ${missing.join(', ')}\n${show(r)}`);
-  else pass(`invalid/${f} → ${[...codes].join(', ')}`);
+  const text = readFileSync(join(bdir, 'invalid', f), 'utf8');
+  const spec = Array.isArray(expected[f]) ? { errors: expected[f] } : (expected[f] || { errors: [] });
+  const r = parseBlock(text);
+  const codes = codesOf(r.errors);
+  const missing = spec.errors.filter((c) => !codes.includes(c));
+  if (r.ok) { fail(`invalid/${f} 应失败但通过了`); continue; }
+  if (missing.length) { fail(`invalid/${f} 缺少预期错误 ${missing.join(', ')}\n${show(r)}`); continue; }
+  let readerNote = '';
+  if (spec.reader !== undefined) {
+    const rr = parseBlock(text, { profile: 'reader' });
+    if (spec.reader === 'ok') {
+      if (!rr.ok) { fail(`invalid/${f} 读者档应接受（只给警告）\n${show(rr)}`); continue; }
+      readerNote = '；读者档接受';
+    } else {
+      const rc = codesOf(rr.errors);
+      const rm = spec.reader.filter((c) => !rc.includes(c));
+      if (rr.ok || rm.length) { fail(`invalid/${f} 读者档应报 ${spec.reader.join(', ')}\n${show(rr)}`); continue; }
+      readerNote = `；读者档拒收 ${rc.join(', ')}`;
+    }
+  }
+  pass(`invalid/${f} → ${codes.join(', ')}${readerNote}`);
+}
+
+// 版本比较、视图换算（v0.3 §1.1、§4.6）
+{
+  const cases = [
+    ['版本：0.10 > 0.3', compareVersions('0.10', '0.3') === 1],
+    ['版本：0.3 = 0.3.0', compareVersions('0.3', '0.3.0') === 0],
+    ['版本：0.2 < 0.3', compareVersions('0.2', '0.3') === -1],
+    ['视图：view 优先于 mode', effectiveView({ mode: 'character', view: 'device-aware' }) === 'device-aware'],
+    ['视图：旧 mode 换算', effectiveView({ mode: 'author' }) === 'backstage' && effectiveView({ mode: 'character' }) === 'in-story'],
+  ];
+  for (const [name, ok] of cases) ok ? pass(`block/${name}`) : fail(`block/${name}`);
+}
+
+// 清洗与标识规则（v0.3 §4.4、§2.6）
+for (const c of JSON.parse(readFileSync(join(ROOT, 'fixtures/sanitize/cases.json'), 'utf8'))) {
+  const fn = sanitize[c.fn];
+  if (typeof fn !== 'function') { fail(`sanitize/${c.fn} 不存在`); continue; }
+  const got = fn(...c.args);
+  const same = JSON.stringify(got) === JSON.stringify(c.expect);
+  same ? pass(`sanitize/${c.fn}：${c.name}`) : fail(`sanitize/${c.fn}：${c.name}\n    期望 ${JSON.stringify(c.expect)}，得到 ${JSON.stringify(got)}`);
 }
 
 // <bio_act/> 样例与模式帧
 for (const c of JSON.parse(readFileSync(join(ROOT, 'fixtures/bio-act/replies.json'), 'utf8'))) {
-  const r = parseBioActs(c.text);
+  const r = parseBioActs(c.text, c.opts);
   const same = JSON.stringify(r.acts) === JSON.stringify(c.acts) && JSON.stringify(r.errors.map((e) => e.code)) === JSON.stringify(c.errors);
   same ? pass(`bio-act/${c.name}`) : fail(`bio-act/${c.name}\n    得到 ${JSON.stringify(r)}`);
 }
@@ -63,6 +117,7 @@ for (const p of PATTERNS) {
     ['档位：不传参数与初版一致', JSON.stringify(patternFrames('wave', 0.8, null)) === JSON.stringify(patternFrames('wave', 0.8, null, resolveSettings('slow-burn')))],
     ['自定义：覆盖默认时长', patternFrames('long', 1, null, resolveSettings('slow-burn', { defaultMs: { long: 8000 } })).at(-1)[0] === 8000],
     ['自定义：每条回复上限最多 5', resolveSettings('frenzy', { maxPerReply: 9 }).maxPerReply === 5 && parseBioActs('<bio_act/>'.repeat(6), { maxPerReply: 5 }).acts.length === 5],
+    ['显示时隐藏全部标签（含思维链里的）', hideBioActs('<think><bio_act/></think>她笑了<bio_act pattern="wave"/>。') === '<think></think>她笑了。'],
     ['未知档位按慢热', resolveSettings('turbo').profile === 'slow-burn' && Object.keys(PROFILES).join() === 'slow-burn,steady,frenzy,max'],
   ];
   for (const [name, ok] of cases) ok ? pass(`bio-act/${name}`) : fail(`bio-act/${name}`);

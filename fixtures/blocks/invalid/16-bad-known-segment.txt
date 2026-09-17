@@ -1,0 +1,13 @@
+<bio_context v="0.3" mode="author" view="backstage" source="heartlink" cadence="1s">
+sent: 21:04:40
+scope: gen, read = previous reply; write, send = this message
+baseline: 72 bpm (median, n=200)
+prior(whoop-api, yesterday): recovery 58
+history: n/a
+gen: 41s | hr 74→75 [73–77] | cov high
+read: n/a (no previous reply)
+write: n/a
+away: none
+send: 78 bpm (+8%)
+note: observable record only; phase edges are page events; hr lags seconds; wrist motion lowers confidence
+</bio_context>

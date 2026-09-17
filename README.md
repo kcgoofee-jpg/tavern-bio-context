@@ -8,10 +8,10 @@
 
 | 项 | 当前 |
 |---|---|
-| 规范 | v0.2 定稿候选（[`docs/spec-v0.2-zh.md`](docs/spec-v0.2-zh.md)）；v0.3 草案（[`docs/spec-v0.3-draft-zh.md`](docs/spec-v0.3-draft-zh.md)） |
+| 规范 | v0.2 定稿候选（[`docs/spec-v0.2-zh.md`](docs/spec-v0.2-zh.md)）；v0.3 定稿候选（[`docs/spec-v0.3-draft-zh.md`](docs/spec-v0.3-draft-zh.md)）；v0.4 草案（[`docs/spec-v0.4-draft-zh.md`](docs/spec-v0.4-draft-zh.md)：流式、心率滞后、基线年龄与噪声、派生事实） |
 | 规范用语与一致性 | [`docs/conformance-zh.md`](docs/conformance-zh.md)（必须 / 应该 / 可以；一致性角色；版本策略；登记表） |
 | 机器可读定义 | [`schema/`](schema)：注入块 ABNF、聊天变量、卡片声明、诊断、触觉动作、执行器能力 |
-| 校验 | `npm install && npm test`；单独校验一个块：`node tools/validate.mjs 块.txt` |
+| 校验 | `npm install && npm test`；单独校验一个块：`node tools/validate.mjs 块.txt`（生产者档），`--reader`（读者档） |
 | 参考实现 | [heartlink](https://github.com/kcgoofee-jpg/heartlink-extension)（SillyTavern 扩展，已公开，AGPL-3.0） |
 | 许可 | 规范文本 CC BY 4.0（参考实现是独立仓库，许可证见该仓库） |
 
@@ -43,8 +43,8 @@
 | 注入块 `<bio_context>` | 每次用户可见生成前注入的一条 system 消息：首行属性 + 固定行 + 扩展行，字段为固定英文键，块内不写解释 | 生产者（设备脚本） | 模型 | v0.2 §2，v0.3 §1–2，`schema/block.abnf` |
 | 聊天变量 `bio` | 本轮摘要、最近 20 轮、日级数据、传感器状态 | 生产者 | 角色卡脚本、状态栏、导出 | v0.2 §3，v0.3 §3，`schema/bio-variable.schema.json` |
 | 页面事件 `bio:*` | `bio:sample`、`bio:inject`、`bio:state`、`bio:diagnostics`、`bio:actuate`、`bio:actuators`、`bio:output-state`、`bio:reply-acts` | 生产者 | 其他扩展、美化 | v0.2 §4，v0.3 §4–5 |
-| 页面总线 `window.tbc` | `push` 样本、`registerContext` 设备状态行、`setDaily`、`diagnostics()`、`setExposure()`、`registerActuator` / `actuate` / `stop`、只读的 `outputState()` / `replyActs()` | 生产者提供，任何脚本调用 | 信号源、执行器、卡片脚本 | v0.2 §5，v0.3 §4–5 |
-| 本机桥 | `ws://127.0.0.1:27130/tbc/v0.2`，跨进程镜像总线 | 桌面程序 | 生产者 | v0.2 §6，v0.3 §5.5 |
+| 页面总线 `window.tbc` | `push` 样本、`registerContext` 设备状态行、`setDaily`、`diagnostics()`、`setExposure()`、`claimProducer()`、`registerActuator` / `actuate` / `stop`、只读的 `outputState()` / `replyActs()` | 生产者提供，任何脚本调用 | 信号源、执行器、卡片脚本 | v0.2 §5，v0.3 §4–5 |
+| 本机桥 | `ws://127.0.0.1:27130/tbc/v0.2`，跨进程镜像总线；**发布前必须实现** Origin 白名单、配对令牌、`read` / `push` / `actuate` 分权限 | 桌面程序 | 生产者 | v0.2 §6，v0.3 §5.5、§6 |
 | 卡片声明 | `data.extensions.tbc = { mode_hint, perceiver, min_spec }` | 角色卡作者 | 生产者 | v0.3 §1.2，`schema/card-declaration.schema.json` |
 
 ## 3. 指标一览
@@ -91,7 +91,7 @@
 | 行 | 记录什么 | 起始版本 |
 |---|---|---|
 | `sent` | 本次发送时刻 | 0.1 |
-| `scope` | 固定文本：gen、read 属于上一条回复，write、send 属于本条消息 | 0.3 |
+| `scope` | 固定文本，按 `trigger` 选一句：gen、read 属于哪条回复，write、send 属于哪条消息 | 0.3 |
 | `gen` / `read` / `write` | 看生成、读上一条回复、写本条消息三个相位的时长、心率区间、峰值时刻、覆盖率 `cov`、`rr-loss`、`hrv` | 0.1（`cov` 0.2） |
 | `read-pos` | 读回复时峰值大约落在哪一段（估计或校准的阅读速度） | 0.2 |
 | `away` | 页面切走 / 空闲区间 | 0.1 |
@@ -123,20 +123,20 @@
 | `away` | 上一条回复出完到这次发送之间，读者离开页面或长时间未操作的区间 | 不计入统计 |
 | `baseline` | 本场安静时段自动算出的平静心率，作为比较基准 | 全程参照；没有基线时不得做"比平时快/慢"的判断 |
 
-固定行 `scope: gen, read = previous reply; write, send = this message` 会把这份归属写进块里，模型不用读说明也能分清"这段数据说的是上一条回复，还是这一条消息"。
+固定行 `scope: gen, read = previous reply; write, send = this message` 会把这份归属写进块里，模型不用读说明也能分清"这段数据说的是上一条回复，还是这一条消息"；换页、继续、冒名生成时换成对应的句子（v0.3 §1.3）。
 
 ## 5. 示例
 
 v0.3 入戏模式的一轮（数值为编造，见 [`fixtures/blocks/valid/`](fixtures/blocks/valid)）：
 
 ```text
-<bio_context v="0.3" mode="in-story" source="heartlink" device="whoop-5.0" transport="ble" cadence="1s" rr="yes" trigger="normal" perceiver="小影">
+<bio_context v="0.3" mode="character" view="in-story" source="heartlink" device="whoop-5.0" transport="ble" cadence="1s" rr="yes" trigger="normal" perceiver="小影" date="2026-09-17" tz="+08:00">
 sent: 21:04:40
 scope: gen, read = previous reply; write, send = this message
-baseline: 72 bpm (quiet-median, n=412; hrv 64 ms)
+baseline: 72 bpm (rest, n=412; hrv 64 ms)
 history: read-peaks 78 84 | read-dur 1:52 2:10 | hrv 60 · 55
 gen: 41s (ttft 12s, reasoning 9s, body 20s) | hr 74→75 [73–77] | cov 98%
-read: 2:10 | hr 75→81 [73–86] peak 86 @47s | cov 96% | rr-loss 14% | hrv 55 ms
+read: 2:10 | hr 75→81 [73–86] peak 86 @47s | cov 96% | rr-loss 4% | hrv 55 ms
 write: 18s, 52 chars, pauses 2, edits 1 | hr 81→78 [77–81] | cov 100% | rr-loss 61%
 away: none
 send: 78 bpm (+8%)
@@ -147,17 +147,17 @@ note: observable record only; phase edges are page events; hr lags seconds; wris
 
 ## 6. 使用模式
 
-| `mode` | 旧名 | 含义 |
+| `view` | 同时写的 `mode` | 含义 |
 |---|---|---|
 | `backstage` | `author` | 数据只给作者（模型）调节写法，角色不知道 |
 | `in-story` | `character` | 由首行 `perceiver` 指定的角色能感知读者的身体状态，用身体感受说出来，不说数字 |
-| `device-aware` | — | 角色知道读者戴着设备，可以明说 |
+| `device-aware` | `character` | 角色知道读者戴着设备，可以明说 |
 
-模式由用户选择；角色卡可用 `data.extensions.tbc.mode_hint` 给出默认值。块内只记录，解释写在世界书或预设的思维链里。
+0.x 期间首行的 `mode` 只写旧值 `author` / `character`（已发布的 v0.2 世界书继续生效），新名写在 `view`，读者以 `view` 为准（v0.3 §1.1）。模式由用户选择；角色卡可用 `data.extensions.tbc.mode_hint` 给出默认值。块内只记录，解释写在世界书或预设的思维链里；心率只说明唤起和注意，不说明好恶（v0.3 §1.6）。
 
 ## 7. 输出：让设备动起来
 
-- 模型在回复里写 `<bio_act pattern="wave" intensity="0.4" ms="3000"/>`，生产者在**用户可见生成正常结束后**解析并调用 `tbc.actuate`；后台生成、中途停止的生成、旧回复都不执行。
+- 模型在回复里写 `<bio_act pattern="wave" intensity="0.4" ms="3000"/>`，生产者在**用户可见生成正常结束后**解析并调用 `tbc.actuate`；后台生成、中途停止的生成、旧回复都不执行。思维链、代码、HTML 注释里的标签不算动作，每条回复的上限按剩下的标签计算；标签由生产者自己在显示时隐藏（v0.3 §5.3）。
 - 执行器用 `tbc.registerActuator(id, caps, handler)` 登记；生产者把模式展开成强度帧交给执行器。
 - 安全（必须）：默认关闭；用户强度上限；每个执行器的最小间隔；每条回复最多 3 个（可改，最多 5）；一键全停；页面关闭或断线即停；停止不经过模型判断。安全词是可选功能，默认关闭。
 - 只读状态给角色助手、卡片脚本、美化用：`tbc.outputState()`（开关、强度上限、当前档位、执行器数）、`tbc.replyActs()`（最近的回复动作执行记录），以及对应事件 `bio:output-state`、`bio:reply-acts`；它们只能读这组公开接口，不得读某个实现的内部状态。
@@ -183,7 +183,7 @@ note: observable record only; phase edges are page events; hr lags seconds; wris
 | [`schema/block.abnf`](schema/block.abnf) | 注入块语法 |
 | [`schema/*.schema.json`](schema) | 聊天变量、卡片声明、诊断对象、触觉动作、执行器能力 |
 | [`fixtures/`](fixtures) | 合规 / 不合规样例；`<bio_act/>` 解析样例 |
-| [`tools/block.mjs`](tools/block.mjs)、[`tools/bio-act.mjs`](tools/bio-act.mjs) | 参考解析器（实现可直接用于一致性测试） |
+| [`tools/block.mjs`](tools/block.mjs)、[`tools/bio-act.mjs`](tools/bio-act.mjs)、[`tools/sanitize.mjs`](tools/sanitize.mjs) | 参考解析器（生产者档 / 读者档）、`<bio_act/>` 解析、总线字符串校验与清洗（实现可直接用于一致性测试） |
 | [`tools/validate.mjs`](tools/validate.mjs) | `npm test` 的入口 |
 
 ## 9. 实现
@@ -232,7 +232,7 @@ note: observable record only; phase edges are page events; hr lags seconds; wris
 
 ## 12. 版本与贡献
 
-- 版本策略：`0.x` 期间，新增行与属性必须向后兼容（读者忽略不认识的行）；改动已有行的格式要升次版本号并写进 [`CHANGELOG.md`](CHANGELOG.md)。
+- 版本策略：`0.x` 期间，新增行与属性必须向后兼容（读者按行名取值，忽略不认识的行、属性和段）；固定区从 v0.3 起冻结；改动已有行的格式要升次版本号并写进 [`CHANGELOG.md`](CHANGELOG.md)。
 - 旧稿保留：[`docs/spec-zh.md`](docs/spec-zh.md)（v0.1）、[`docs/spec-v0.2.md`](docs/spec-v0.2.md)（英文，未完成）。
 - 贡献流程见 [`CONTRIBUTING.md`](CONTRIBUTING.md)。样例中的数值、设备编号一律编造，不得包含真实序列号或个人数据。
 </content>

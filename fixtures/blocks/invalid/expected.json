@@ -1,25 +1,142 @@
 {
-  "01-no-note.txt": [
-    "NOTE_MISSING"
-  ],
-  "02-bad-mode.txt": [
-    "HEADER_MODE"
-  ],
-  "03-serial-and-perceiver-in-backstage.txt": [
-    "PRIVACY_SERIAL",
-    "PERCEIVER_IN_BACKSTAGE"
-  ],
-  "04-l2-without-tag-and-order.txt": [
-    "LINE_MISSING",
-    "L2_TAG_MISSING"
-  ],
-  "05-conclusion-words.txt": [
-    "LINE_SYNTAX"
-  ],
-  "06-bad-haptics-line.txt": [
-    "LINE_SYNTAX"
-  ],
-  "07-bad-feedback.txt": [
-    "LINE_SYNTAX"
-  ]
+  "01-no-note.txt": {
+    "errors": [
+      "NOTE_MISSING"
+    ],
+    "reader": "ok"
+  },
+  "02-bad-mode.txt": {
+    "errors": [
+      "HEADER_MODE"
+    ],
+    "reader": "ok"
+  },
+  "03-serial-and-perceiver-in-backstage.txt": {
+    "errors": [
+      "PRIVACY_SERIAL",
+      "PERCEIVER_IN_BACKSTAGE"
+    ],
+    "reader": "ok"
+  },
+  "04-l2-without-tag-and-order.txt": {
+    "errors": [
+      "LINE_ORDER",
+      "L2_TAG_MISSING"
+    ],
+    "reader": "ok"
+  },
+  "05-conclusion-words.txt": {
+    "errors": [
+      "LINE_SYNTAX"
+    ],
+    "reader": "ok"
+  },
+  "06-bad-haptics-line.txt": {
+    "errors": [
+      "LINE_SYNTAX"
+    ],
+    "reader": "ok"
+  },
+  "07-bad-feedback.txt": {
+    "errors": [
+      "LINE_SYNTAX",
+      "FEEDBACK_COUNT"
+    ],
+    "reader": "ok"
+  },
+  "08-injection.txt": {
+    "errors": [
+      "BLOCK_MARKERS",
+      "LINE_GRAMMAR"
+    ],
+    "reader": [
+      "BLOCK_MARKERS",
+      "LINE_GRAMMAR"
+    ]
+  },
+  "09-mode-new-value.txt": {
+    "errors": [
+      "HEADER_MODE_NEW"
+    ],
+    "reader": "ok"
+  },
+  "10-view-mismatch.txt": {
+    "errors": [
+      "HEADER_VIEW_MISMATCH"
+    ],
+    "reader": "ok"
+  },
+  "11-peak-rules.txt": {
+    "errors": [
+      "PEAK_OUT_OF_RANGE",
+      "READPOS_WITHOUT_PEAK",
+      "PEAK_LOW_COVERAGE"
+    ],
+    "reader": "ok"
+  },
+  "12-swipe-rules.txt": {
+    "errors": [
+      "SCOPE_TRIGGER",
+      "READPOS_FORBIDDEN",
+      "SWIPE_NEW_MESSAGE"
+    ],
+    "reader": "ok"
+  },
+  "13-continue-without-replay.txt": {
+    "errors": [
+      "REPLAY_MISSING",
+      "SCOPE_TRIGGER"
+    ],
+    "reader": "ok"
+  },
+  "14-sparse-fields.txt": {
+    "errors": [
+      "SPARSE_FIELD"
+    ],
+    "reader": "ok"
+  },
+  "15-names-dates.txt": {
+    "errors": [
+      "HEADER_SOURCE",
+      "HEADER_DEVICE",
+      "PRIVACY_SERIAL",
+      "HEADER_DATE",
+      "HEADER_TZ",
+      "KIND_NOT_IN_BLOCK"
+    ],
+    "reader": "ok"
+  },
+  "16-bad-known-segment.txt": {
+    "errors": [
+      "LINE_SYNTAX",
+      "DATE_FORMAT"
+    ],
+    "reader": "ok"
+  },
+  "17-v04-rules.txt": {
+    "errors": [
+      "BASELINE_METHOD_DEPRECATED",
+      "BASELINE_AGE_MISSING",
+      "CARRYOVER_MISSING",
+      "STREAM_WITHOUT_ATTR",
+      "STREAM_LAG_MISMATCH",
+      "STREAM_POS_WITHOUT_PEAK",
+      "PEAK_SHORT_PHASE"
+    ],
+    "reader": "ok"
+  },
+  "18-v03-with-v04-syntax.txt": {
+    "errors": [
+      "LINE_SYNTAX"
+    ],
+    "reader": "ok"
+  },
+  "19-short-phase-and-hrv.txt": {
+    "errors": [
+      "PEAK_SHORT_PHASE",
+      "HRV_SHORT_WINDOW",
+      "HRV_QUALITY"
+    ],
+    "reader": "ok"
+  }
 }

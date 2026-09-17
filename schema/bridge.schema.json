@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kcgoofee-jpg/tavern-bio-context/schema/bridge.schema.json",
+  "title": "TBC local bridge handshake and permission errors (v0.3 §6)",
+  "description": "本机桥的握手与权限错误消息。其余消息见 v0.2 §6、v0.3 §5.5。令牌不得出现在块、世界书、消息、诊断里。",
+  "oneOf": [
+    {
+      "title": "client hello",
+      "type": "object",
+      "required": ["cmd", "client", "version", "scopes"],
+      "additionalProperties": false,
+      "properties": {
+        "cmd": { "const": "hello" },
+        "client": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._:-]{0,31}$" },
+        "version": { "type": "string", "maxLength": 32 },
+        "token": { "type": "string", "minLength": 16, "maxLength": 256, "description": "配对后由桥下发；首次连接没有" },
+        "pairingCode": { "type": "string", "pattern": "^\\d{6}$", "description": "用户在页面里输入的 6 位配对码" },
+        "scopes": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/scope" } }
+      }
+    },
+    {
+      "title": "bridge hello reply",
+      "type": "object",
+      "required": ["event", "detail"],
+      "additionalProperties": false,
+      "properties": {
+        "event": { "const": "bio:hello" },
+        "detail": {
+          "type": "object",
+          "required": ["granted", "denied", "pairing"],
+          "additionalProperties": false,
+          "properties": {
+            "granted": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/scope" } },
+            "denied": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/scope" } },
+            "pairing": { "type": "boolean", "description": "true = 需要用户在桥界面看配对码并在页面输入" },
+            "token": { "type": "string", "minLength": 16, "maxLength": 256, "description": "只在配对成功的那一次下发" }
+          }
+        }
+      }
+    },
+    {
+      "title": "bridge error",
+      "type": "object",
+      "required": ["event", "detail"],
+      "additionalProperties": false,
+      "properties": {
+        "event": { "const": "bio:error" },
+        "detail": {
+          "type": "object",
+          "required": ["code"],
+          "additionalProperties": false,
+          "properties": {
+            "code": { "enum": ["FORBIDDEN", "PAIRING_REQUIRED", "ORIGIN_DENIED", "BAD_TOKEN", "BAD_INPUT"] },
+            "cmd": { "type": "string", "maxLength": 32 }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "scope": { "enum": ["read", "push", "actuate"] }
+  }
+}
