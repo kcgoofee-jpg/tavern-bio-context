@@ -27,7 +27,7 @@
 | [Karasukaigan/TavLite](https://github.com/Karasukaigan/TavLite) | — | 独立轻量酒馆 | 角色卡 + Intiface |
 | [phoenixthrush/llm-roleplay-intiface](https://github.com/phoenixthrush/llm-roleplay-intiface) | — | 独立应用 | — |
 
-酒馆之外：buttplug-mcp、tactus、signal_bridge（MCP 让任何 Agent 控设备）；a9lim/rlaif（PiShock 电击给 Agent 做正负反馈）；AgenticLover、sayit.love（商业 AI 伴侣控设备）。完整索引见 [awesome.buttplug.io](https://awesome.buttplug.io/)。
+酒馆之外：buttplug-mcp、tactus、signal_bridge（MCP 让任何 Agent 控设备）；a9lim/rlaif（PiShock 电击给 Agent 做正负反馈）；PsychoSmiley/LLM_Buttplug（text-generation-webui 扩展，非酒馆生态的同类做法；与补遗二的 zhanp199/ButtplugLLM 是两个项目，2026-09-18 经 GitHub 核实）；AgenticLover、sayit.love（商业 AI 伴侣控设备）。完整索引见 [awesome.buttplug.io](https://awesome.buttplug.io/)。
 
 ## 三、把“真实世界”注入酒馆的同类思路
 
@@ -83,3 +83,16 @@
 ## 补遗二：男性向设备与执行器生态（2026-09-17）
 
 第一版与 awesome-ai-companion 都偏女性向震动类。男性向的现成生态见 `device-interface-zh.md` §8：The Handy（REST v3 / buttplug / 浏览器蓝牙，MagicHandy 已做 LLM 聊天控制）、Kiiroo Keon、Lovense Solace/Max、OSR2/SR6/OSSM（TCode，MultiFunPlayer 中枢）、DG-LAB 郊狼（官方开源 BLE 协议 654★，open-DGLAB-controller WebSocket API，buttplug-dg-lab，coyote-socket）、DG-LAB 灵猫边缘控制传感器（开源 BLE，100 ms 气压——一个现成的非心率信号源）、Edge-o-Matic 3000（压力传感 + 输出，开源固件与插件）、restim / PiShock（电刺激）。已有的 AI 接入：Buttplug MCP 三个实现、Tactus、ButtplugLLM、LLM Roleplay Intiface、Nomi-Lovense、sayit.love、Synsual；已有的"心率 → 设备"：Heartrate-Buttplug、phantom-touch-bridge。它们缺的都是同一件事：读者状态的统一来源与设备状态回到上下文的统一格式——这就是 TBC 设备对接标准要填的位置。
+
+## 补遗三：反向层工程细节与启示（2026-09-18）
+
+合并自参考实现仓库的调研笔记 `heartlink/docs/references-buttplug.md`（调研日期 2026-09-16，与第一版普查同源）。逐条核对后只记增量；与 §二、§四 重复的条目不再列出。
+
+- **Enclave0775/Intiface_Central-Sillytavern-plugin**：连 Intiface Central 本地 WebSocket `ws://127.0.0.1:12345`（与设备标准 §8 一致）；除卡拉 OK 高亮外还有 A-B 段循环；阅读速度按字符/秒推算（笔记以每秒 20 字为例，属经验估计，未核实标定方法）。
+- **intiface-command/intiface-command**：除内联命令与 TTS 同步外，还有命令安全队列、设备能力自动探测、不支持的命令静默忽略——与本协议"读者忽略未知行/段"的宽松解析（v0.3 §2.3）同向。
+- **kirin-3/buttplug-ST**：桥暴露本机 HTTP 端点（`http://localhost:3069/vibrate?...`），任何浏览器都能调，不依赖 Web Bluetooth。
+- **闭环判断**：反向层与"信号进模型"方向互补，接在一起即"读者反应 → 模型调节 → 设备动作 → 读者反应"的闭环；协议侧无需新增东西——`bio` 聊天变量与 `bio:inject` 事件就是反向层的取数口（订阅方式见设备标准 §5），反向扩展可以独立于参考实现存在。
+- **本机桥模式的参考价值**：Intiface Central 已解决"本机常驻服务 + 浏览器 WebSocket"的跨平台、自动重连、设备发现；将来信号侧要支持 Safari 或手机中转时，照这个模式写心率桥即可（设备标准 §5 的 `ws://127.0.0.1:27130` 本机桥就是同一形态），不必重新发明。
+- **安全与节制**：反向层项目的共同做法——本地可信环境、命令队列可中断、不支持的能力静默忽略——与协议原则一一对应：数据不出本机、注入块只记录不解释、信号差就明说。
+
+一处过时声明：原笔记（2026-09-16）称参考实现"不控制任何设备，不接 Intiface"；这已被 v0.3 的输出接口（§5 `<bio_act/>`、§5.6 Intiface / buttplug 适配）与参考实现的玩具标签页（可连 Intiface Central，见 README）取代，以 README 与 CHANGELOG 的 0.3 段为准。

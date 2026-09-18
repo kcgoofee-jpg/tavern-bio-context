@@ -38,6 +38,7 @@
 - v0.2 标为历史稿（已被 v0.3 定稿候选取代）；README 的 v0.4 清单补上 §5.6 玩具传感器、§6 离开类型、§7 世界书扫描缺省关。
 - `device-interface-zh.md`：本机桥目前没有维护中的实现（参考实现只带客户端）；`st-compat-audit`：去掉对私有文件的引用。
 - 样例 `blocks/valid/14` 首行日期更正为 2026-09-18。
+- `landscape-zh.md` 补遗三：合并参考实现仓库的反向层调研笔记（`heartlink/docs/references-buttplug.md`）——Enclave0775 / intiface-command / kirin-3 的工程细节、闭环判断、本机桥模式对 Safari/手机中转的参考价值、安全原则对照；§二补 PsychoSmiley/LLM_Buttplug（与 zhanp199/ButtplugLLM 非同一项目）；并注明原笔记"参考实现不接 Intiface"的声明已过时。
 
 ### Deprecated（草案）
 - `quiet-median`、`p20`：v0.4 起生产者不得输出。
