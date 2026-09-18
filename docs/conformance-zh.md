@@ -95,6 +95,7 @@
 | `clean`（只统计没有执行器驱动的那些秒：`clean(gen\|read\|write): hr … \| sec N/M`，每个相位一行） | L1 | 0.4 草案 |
 | `actuator`（执行器电量与连接，每个执行器一行，≤ 4 行） | L0 | 0.4 草案 |
 | `native`（用户开启的设备自带模式，每个执行器一行） | L0 | 0.4 草案 |
+| `gates`（本轮用了哪些门槛及来源：`idle` / `too-long` / `pause`，§12） | L0 | 0.4 草案 |
 
 尾部：`series`(可选) → `note`(必须，固定句) → `warn`(可选，可多行，0.3 登记；生产者用它提示数据可能不完整)。
 
@@ -123,6 +124,7 @@
 | `clean` | `sec N/M`（必须），以及相位行的 `cov`、`rr-loss`、`hrv`、`mean`、`above` | 0.4 草案 |
 | `actuator` | `battery`（`N%`、可带 `low`，或 `n/a`）、`charging`、`link` | 0.4 草案 |
 | `feedback` | 备注 `native-unstoppable`（只用于 `stop by …`） | 0.4 草案 |
+| `haptics` | `tuned`（用户改过档位参数时列出改过的：`floor`、`long`/`heartbeat`/`wave`、`gap`、`per-reply`；v0.3 块也可带，读者忽略，§13） | 0.4 草案 |
 
 ### 4.5 基线方法（`baseline` 括号里）
 
@@ -175,7 +177,7 @@
 | `SCOPE_TRIGGER`、`REPLAY_MISSING`、`SWIPE_NEW_MESSAGE`、`IMPERSONATE_WRITE`、`READPOS_FORBIDDEN`、`READPOS_WITHOUT_PEAK` | v0.3 §1.3 | 警告 |
 | `HR_RANGE`、`PEAK_OUT_OF_RANGE`、`PEAK_LOW_COVERAGE`、`PEAK_SHORT_PHASE`、`HRV_SHORT_WINDOW`、`HRV_QUALITY`、`SPARSE_FIELD` | v0.3 §1.4、§2.8 | 警告 |
 | `FEEDBACK_COUNT`、`FEEDBACK_SEND_AT`、`FEEDBACK_TOO_MANY` | v0.3 §5.12 | 警告 |
-| `BASELINE_METHOD_DEPRECATED`、`BASELINE_AGE_MISSING`、`BASELINE_MANUAL_INFO`、`LAG_MISSING`、`GEN_PAREN_MISMATCH`、`CARRYOVER_*`、`TAILMAX_*`、`STREAM_*`、`MEAN_*`、`ABOVE_*`、`DERIVED_WITHOUT_BASELINE`、`AWAY_SEG_MISMATCH`、`HISTORY_REL_COUNT`、`ACT_*`、`CLEAN_*`、`TOY_SENSOR_*`、`ACTUATOR_*`、`NATIVE_*` | v0.4 草案 | 警告 |
+| `BASELINE_METHOD_DEPRECATED`、`BASELINE_AGE_MISSING`、`BASELINE_MANUAL_INFO`、`LAG_MISSING`、`GEN_PAREN_MISMATCH`、`CARRYOVER_*`、`TAILMAX_*`、`STREAM_*`、`MEAN_*`、`ABOVE_*`、`DERIVED_WITHOUT_BASELINE`、`AWAY_SEG_MISMATCH`、`HISTORY_REL_COUNT`、`ACT_*`、`CLEAN_*`、`TOY_SENSOR_*`、`ACTUATOR_*`、`NATIVE_*`、`GATES_SYNTAX`、`GATES_RANGE`、`HAPTICS_TUNED` | v0.4 草案 | 警告 |
 
 只给警告的代码：`HEADER_UNKNOWN`、`VIEW_MISSING`、`SCOPE_MISSING`、`LINE_UNKNOWN`、`LINE_IN_FIXED_ZONE`、`LINE_ORDER_UNKNOWN`、`SEG_UNKNOWN`、`FLAG_UNKNOWN`、`DATE_SHORT`、`CPS_NOT_INTEGER`、`FEEDBACK_REF_LEGACY`、`HRV_IN_WRITE`、`AWAY_ABSOLUTE`、`STREAM_ATTR_MISSING`、`STREAM_LINE_MISSING`、`AWAY_SEG_MISSING`，以及 v0.3 里的 `BASELINE_METHOD_DEPRECATED`。
 

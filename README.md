@@ -8,7 +8,7 @@
 
 | 项 | 当前 |
 |---|---|
-| 规范 | v0.2 定稿候选（[`docs/spec-v0.2-zh.md`](docs/spec-v0.2-zh.md)）；v0.3 定稿候选（[`docs/spec-v0.3-draft-zh.md`](docs/spec-v0.3-draft-zh.md)）；v0.4 草案（[`docs/spec-v0.4-draft-zh.md`](docs/spec-v0.4-draft-zh.md)：流式、心率滞后、基线年龄与噪声、派生事实、执行器与相位的重叠与玩具传感器、读者离开的写法与类型（hidden / unfocused / idle / offscreen）、世界书扫描缺省关、执行器电量与连接、设备自带模式直通） |
+| 规范 | v0.2 定稿候选（[`docs/spec-v0.2-zh.md`](docs/spec-v0.2-zh.md)，历史稿）；v0.3 定稿候选（[`docs/spec-v0.3-draft-zh.md`](docs/spec-v0.3-draft-zh.md)）；v0.4 草案（[`docs/spec-v0.4-draft-zh.md`](docs/spec-v0.4-draft-zh.md)：流式、心率滞后、基线年龄与噪声、派生事实、执行器与相位的重叠与玩具传感器、读者离开的写法与类型（hidden / unfocused / idle / offscreen）、世界书扫描缺省关、执行器电量与连接、设备自带模式直通、§12 门槛自学 `gates` 行、§13 节奏细调 `tuned` 段。§1/§2/§4 已通过可实现性检查（写法定到实现者能得出唯一结果，校验器随附）；§11 三个待定点已按推荐定下：`mean`/`above` 草案期仍"应该"、定稿改"必须"，`gen` 行主体改按在场秒（与 `read` 统一），`above` 按 §4 的百分比阈值定义） |
 | 规范用语与一致性 | [`docs/conformance-zh.md`](docs/conformance-zh.md)（必须 / 应该 / 可以；一致性角色；版本策略；登记表） |
 | 机器可读定义 | [`schema/`](schema)：注入块 ABNF、聊天变量、卡片声明、诊断、触觉动作、执行器能力 |
 | 校验 | `npm install && npm test`；单独校验一个块：`node tools/validate.mjs 块.txt`（生产者档），`--reader`（读者档） |
