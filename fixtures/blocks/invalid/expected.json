@@ -184,5 +184,34 @@
       "GATES_SYNTAX"
     ],
     "reader": "ok"
+  },
+  "24-v04-lag-derived-bad.txt": {
+    "errors": [
+      "LAG_MISSING",
+      "HISTORY_REL_COUNT",
+      "MEAN_OUT_OF_RANGE",
+      "MEAN_PCT_MISMATCH",
+      "ABOVE_OVER_PHASE",
+      "ABOVE_INCONSISTENT",
+      "ABOVE_THRESHOLD_MIXED",
+      "ABOVE_ZERO",
+      "AWAY_SEG_MISMATCH",
+      "TAILMAX_NOT_HIGHER",
+      "TAILMAX_WINDOW",
+      "TAILMAX_WITHOUT_PEAK",
+      "TAILMAX_PHASE"
+    ],
+    "reader": "ok"
+  },
+  "25-v04-stream-bad.txt": {
+    "errors": [
+      "STREAM_GEN_MISMATCH",
+      "PEAK_SHORT_PHASE",
+      "PEAK_LOW_COVERAGE",
+      "CARRYOVER_MISSING",
+      "STREAM_POS_IN_WAIT",
+      "STREAM_POS_DISCARDED"
+    ],
+    "reader": "ok"
   }
 }

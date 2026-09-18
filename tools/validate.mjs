@@ -102,6 +102,29 @@ for (const f of readdirSync(join(bdir, 'invalid')).filter((x) => x.endsWith('.tx
       return r.errors.some((e) => e.code === 'ACT_OVER_PHASE');
     })()],
     ['v0.4 clean 行的阈值是可配置的经验值', CLEAN_MIN_SEC === 10 && CLEAN_MIN_SHARE === 30 && CLEAN_PHASES.join() === 'gen,read,write'],
+    ['v0.4 首行 lag 取 1–30 秒（§2.1）', (() => {
+      const src = readFileSync(join(ROOT, 'fixtures/blocks/valid/12-v04-stream.txt'), 'utf8');
+      const zero = parseBlock(src.replace('lag="6s"', 'lag="0s"'));
+      const big = parseBlock(src.replace('lag="6s"', 'lag="31s"'));
+      return zero.errors.some((e) => e.code === 'HEADER_LAG') && big.errors.some((e) => e.code === 'HEADER_LAG');
+    })()],
+    ['v0.4 stream 行的 body 区间按相位规则判 carryover，carryover 峰值不出 pos（§1.2）', (() => {
+      const r = parseBlock(readFileSync(join(ROOT, 'fixtures/blocks/valid/12-v04-stream.txt'), 'utf8').replace('peak 100 @40s', 'peak 100 @4s'));
+      const codes = r.errors.map((e) => e.code);
+      return codes.includes('CARRYOVER_MISSING') && codes.includes('STREAM_POS_IN_WAIT');
+    })()],
+    ['v0.4 有被读的回复而没写 stream 属性只警告（§1.1）', (() => {
+      const r = parseBlock(readFileSync(join(ROOT, 'fixtures/blocks/valid/13-v04-actuator-native.txt'), 'utf8').replace(' stream="no"', ''));
+      return r.ok && r.warnings.some((w) => w.code === 'STREAM_ATTR_MISSING');
+    })()],
+    ['v0.4 stream="yes" 没有 stream 行只警告（§1.2-1）', (() => {
+      const r = parseBlock(readFileSync(join(ROOT, 'fixtures/blocks/valid/12-v04-stream.txt'), 'utf8').replace(/^stream\(lag 6s\):[^\n]*\n/m, ''));
+      return r.ok && r.warnings.some((w) => w.code === 'STREAM_LINE_MISSING');
+    })()],
+    ['v0.4 没有基线时不得输出 mean / above（§4-3）', (() => {
+      const r = parseBlock(readFileSync(join(ROOT, 'fixtures/blocks/valid/18-v04-lag-derived.txt'), 'utf8').replace(/^baseline:[^\n]*$/m, 'baseline: n/a (session too short)'));
+      return r.errors.filter((e) => e.code === 'DERIVED_WITHOUT_BASELINE').length === 5;
+    })()],
   ];
   for (const [name, ok] of cases) ok ? pass(`block/${name}`) : fail(`block/${name}`);
 }

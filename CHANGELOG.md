@@ -33,6 +33,13 @@
 ### Changed（草案，2026-09-18 晚）
 - §6：`idle` 只从有内容可读时开始判（流式从首字、非流式从回复写完）；新内容出现和读者操作一样重新开始计时。等首字时坐着不动不再算离开。
 
+### Changed（草案，2026-09-18，§1 / §2 / §4 可实现性检查：把措辞定到实现者能写出唯一结果）
+- §1.1 `stream` 属性：`yes` = `reply_end` 前收到过至少一个正文片段；有被读的回复时应该写（校验器只警告 `STREAM_ATTR_MISSING`）；重放块沿用原值。
+- §1.2 `stream` 行：`wait` / `body` 是墙钟时长，字数与 `read-pos` 的总字数同一口径；`hr` 段的 `@Ns` 相对 body 开始，body 区间按相位行的全部峰值规则检查（最短 `max(10 s, 2L)`、`cov`、`carryover`）；`pos` 取“时刻 ≤ peakAt − lag 的最后一条记录”（阶梯函数），带 `carryover` 的峰值不出 `pos`；`wait` / `body` 必须与 `gen` 行括号里的 `ttft + reasoning` / `body` 相等（±1 秒）；换页 / 重新生成时 `stream` 行可写但不得带 `pos`；段顺序建议。
+- §2.1 `lag`：整数秒 1–30；全块一个值；块里有 `peak` / `carryover` / `tail-max` / `stream` 行时首行必须写。§2.2 `carryover` 的 `@Ns` 口径与相位行相同（在场秒，取整），门槛就是 L；适用于相位行、`clean` 行、`stream` 行。§2.3 `tail-max` 定死：与 `peak` 同一平滑的最大值、`@+Ns` 在 1–L、只在有 `peak` 且高于它时写、只用于 `gen` / `read`（`write` 之后没有样本）。
+- §4 派生事实：样本口径（该行统计的同一批样本、逐秒原始值）；百分比写法 `round(|x − 基线| ÷ 基线 × 100)` 加符号、0 写 `+0%`、按写出的均值算；`mean` 必须在 `[min–max]` 内；没有基线时不得写 `mean` / `above`；`above` 为 0 秒整段省略、阈值 ≥ 1 且全块一致、秒数不超过行时长、与区间最大值相符；`away` 段只算 `hidden` / `unfocused`（含没写进 `away` 行的区间）、有被剔除的秒时应该写；`read-peak-rel` 与 `read-peaks` 一一对应、`·` 对齐、`history: n/a` 时不写；段顺序建议 `cov → rr-loss → hrv → off-wrist → mean → above → away → tail-max → act → flag`。
+- 校验器（`tools/block.mjs`）：新增 `LAG_MISSING`、`STREAM_ATTR_MISSING`（警告）、`STREAM_LINE_MISSING`（警告）、`STREAM_GEN_MISMATCH`、`STREAM_POS_IN_WAIT`、`STREAM_POS_DISCARDED`、`TAILMAX_WITHOUT_PEAK`、`TAILMAX_PHASE`、`MEAN_OUT_OF_RANGE`、`MEAN_PCT_MISMATCH`、`DERIVED_WITHOUT_BASELINE`、`ABOVE_ZERO`、`ABOVE_OVER_PHASE`、`ABOVE_INCONSISTENT`、`ABOVE_THRESHOLD_MIXED`、`AWAY_SEG_MISMATCH`、`AWAY_SEG_MISSING`（警告）、`HISTORY_REL_COUNT`；`HEADER_LAG` 检查范围；`TAILMAX_WINDOW` 也拒绝 `@+0s`；`stream` 行的 body 区间检查 `PEAK_SHORT_PHASE` / `PEAK_LOW_COVERAGE` / `CARRYOVER_*`（原来把 `carryover` 静默剥掉）。导出 `LAG_MIN_SEC`、`LAG_MAX_SEC`、`MEAN_PCT_TOLERANCE`、`PHASE_SEG_ORDER`。样例：`blocks/valid/18-v04-lag-derived.txt`（胸带、`stream="no"`、`read-pos` 用 `peakAt − lag`、`tail-max`、`carryover`、`mean` / `above` / `away` / `read-peak-rel`），`blocks/invalid/24-v04-lag-derived-bad.txt`、`25-v04-stream-bad.txt`；`valid/12`、`15`、`16` 补上 `away` 段。
+
 ### Docs（2026-09-18 整理）
 - 样例与示例里的感知者名字改为中性的“艾拉”（README、v0.3 §2 示例、`fixtures/blocks`、`fixtures/json`、`fixtures/sanitize`）；校验结果不变。
 - v0.2 标为历史稿（已被 v0.3 定稿候选取代）；README 的 v0.4 清单补上 §5.6 玩具传感器、§6 离开类型、§7 世界书扫描缺省关。

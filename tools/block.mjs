@@ -130,9 +130,9 @@ const PHASE_SEGS = [
   { key: 'flag', since: '0.1', re: /^flag: [a-z][a-z-]*(?: \([^()]*\))?$/ },
   { key: 'off-wrist', since: '0.3', re: /^off-wrist \d+:\d{2}$/ },
   // v0.4 草案 §4：带定义的派生事实
-  { key: 'mean', since: '0.4', re: /^mean \d+ \([+-]\d+%\)$/ },
-  { key: 'above', since: '0.4', re: new RegExp(`^above \\+\\d+% ${DUR}$`) },
-  { key: 'away', since: '0.4', re: new RegExp(`^away ${DUR}$`) },
+  { key: 'mean', since: '0.4', re: /^mean (\d+) \(([+-])(\d+)%\)$/ },
+  { key: 'above', since: '0.4', re: new RegExp(`^above \\+(\\d+)% (${DUR})$`) },
+  { key: 'away', since: '0.4', re: new RegExp(`^away (${DUR})$`) },
   { key: 'tail-max', since: '0.4', re: /^tail-max (\d+) @\+(\d+)s$/ },
   // v0.4 草案 §5.1：本相位内执行器运行的秒数、强度与动作条数（算的是生产者发出的动作）
   { key: 'act', since: '0.4', re: new RegExp(`^act (${DUR}), mean (\\d{1,3})%, (\\d{1,2}) (acts?)(?: \\((${RISKY_OUTPUTS.join('|')})(?:\\/(?:${RISKY_OUTPUTS.join('|')}))*\\))?$`) },
@@ -159,6 +159,13 @@ const SEND_RE = /^(?:n\/a(?: \([^()]*\))?|\d+ bpm(?: \([+-]\d+%\))?)$/;
 
 // v0.3 §1.4：只减少输出的生产者规则里可以从块本身检查的部分
 export const PEAK_MIN_PHASE_SEC = 10;   // v0.4 起为 max(10, 2 × lag)
+// v0.4 草案 §2.1：首行 lag 的取值范围（整数秒；上限是经验值，再大最短相位就到一分钟）
+export const LAG_MIN_SEC = 1;
+export const LAG_MAX_SEC = 30;
+// v0.4 草案 §4：mean 的百分比允许 1 个百分点的取整误差；away 段允许每个区间 1 秒的取整误差
+export const MEAN_PCT_TOLERANCE = 1;
+// 相位行段的推荐顺序（v0.4 §4-7；读者按名字取值，不按顺序拒收）
+export const PHASE_SEG_ORDER = ['cov', 'rr-loss', 'hrv', 'off-wrist', 'mean', 'above', 'away', 'tail-max', 'act', 'flag'];
 export const HRV_MAX_LOSS = 5;          // 被剔除或插值的 RR 超过 5% 不输出 hrv
 export const PHASE_FLAGS = ['too-long', 'hr-high'];
 
@@ -281,7 +288,11 @@ function checkHeader({ v, at, err, warn, attrs }) {
   if (has('date') && !DATE_RE.test(attrs.date)) err(1, 'HEADER_DATE', 'date 必须是 YYYY-MM-DD（sent 所在的本地日期）');
   if (has('tz') && !/^[+-]\d{2}:\d{2}$/.test(attrs.tz)) err(1, 'HEADER_TZ', 'tz 必须是 +HH:MM 或 -HH:MM');
   if (has('stream') && !['yes', 'no'].includes(attrs.stream)) err(1, 'HEADER_STREAM', 'stream 只能是 yes / no');
-  if (has('lag') && !/^\d+s$/.test(attrs.lag)) err(1, 'HEADER_LAG', 'lag 必须是 数字+s');
+  if (has('lag')) {
+    const n = /^(\d+)s$/.exec(attrs.lag);
+    if (!n) err(1, 'HEADER_LAG', 'lag 必须是 数字+s（整数秒）');
+    else if (Number(n[1]) < LAG_MIN_SEC || Number(n[1]) > LAG_MAX_SEC) err(1, 'HEADER_LAG', `lag 必须在 ${LAG_MIN_SEC}–${LAG_MAX_SEC} 秒（v0.4 §2.1）：${attrs.lag}`);
+  }
   const unknown = Object.keys(attrs).filter((k) => !k.startsWith('x_') && !(k in HEADER_ATTRS && at(HEADER_ATTRS[k])));
   if (unknown.length) warn(1, 'HEADER_UNKNOWN', `v="${v}" 未登记的首行属性：${unknown.join(', ')}（读者会忽略）`);
 }
@@ -405,11 +416,43 @@ function checkPhase(ctx, l, sparse, lagSec) {
     if (hr.at < lagSec && !hr.carryover) ctx.err(l.line, 'CARRYOVER_MISSING', `peak @${hr.at}s 早于 lag ${lagSec}s，必须写 carryover（${l.name} 行）`);
     if (hr.at >= lagSec && hr.carryover) ctx.err(l.line, 'CARRYOVER_WRONG', `peak @${hr.at}s 不早于 lag ${lagSec}s，不得写 carryover（${l.name} 行）`);
   }
-  if (found['tail-max'] && hr.peak != null && Number(found['tail-max'][1]) <= hr.peak) ctx.err(l.line, 'TAILMAX_NOT_HIGHER', `tail-max 只在高于本相位 peak 时输出（${l.name} 行）`);
-  if (found['tail-max'] && lagSec != null && Number(found['tail-max'][2]) > lagSec) ctx.err(l.line, 'TAILMAX_WINDOW', `tail-max 的时刻不得晚于相位结束后 lag 秒（${l.name} 行）`);
+  if (found['tail-max']) {
+    const [tv, tn] = [Number(found['tail-max'][1]), Number(found['tail-max'][2])];
+    if (hr.peak == null) ctx.err(l.line, 'TAILMAX_WITHOUT_PEAK', `没有 peak 的相位不得输出 tail-max（${l.name} 行）`);
+    else if (tv <= hr.peak) ctx.err(l.line, 'TAILMAX_NOT_HIGHER', `tail-max 只在高于本相位 peak 时输出（${l.name} 行）`);
+    if (tn < 1 || (lagSec != null && tn > lagSec)) ctx.err(l.line, 'TAILMAX_WINDOW', `tail-max 的时刻必须在相位结束后 1–lag 秒内（${l.name} 行）：@+${tn}s`);
+    if (l.name === 'write') ctx.err(l.line, 'TAILMAX_PHASE', 'write 相位结束就是发送，块已生成，不得写 tail-max');
+  }
   hr.dur = dur;
   hr.act = checkAct(ctx, l, found.act, dur);
+  hr.derived = checkDerived(ctx, l, found, hr, dur, l.name);
   return hr;
+}
+
+// v0.4 草案 §4：mean / above / away 段的单行检查；跨行的（相对基线、阈值一致、与 away 行对账）在 checkLines 末尾做
+function checkDerived(ctx, l, found, hr, dur, phase) {
+  const d = { l, phase, hr, dur, mean: null, above: null, awaySec: null };
+  if (hr.na && (found.mean || found.above)) ctx.err(l.line, 'LINE_SYNTAX', `没有心率统计的行不得输出 mean / above（${l.name} 行）`);
+  if (found.mean) {
+    const value = Number(found.mean[1]);
+    const pct = Number(found.mean[3]) * (found.mean[2] === '-' ? -1 : 1);
+    if (hr.min != null && (value < hr.min || value > hr.max)) ctx.err(l.line, 'MEAN_OUT_OF_RANGE', `mean ${value} 不在区间 [${hr.min}–${hr.max}] 内（${l.name} 行）`);
+    d.mean = { value, pct };
+  }
+  if (found.above) {
+    const pct = Number(found.above[1]);
+    const sec = durSec(found.above[2]);
+    if (pct < 1) ctx.err(l.line, 'LINE_SYNTAX', `above 的阈值是 ≥ 1 的整数百分比：${found.above[0]}`);
+    if (!sec) ctx.err(l.line, 'ABOVE_ZERO', `累计为 0 秒时整段省略，不写 above … 0s（${l.name} 行）`);
+    if (dur != null && sec > dur) ctx.err(l.line, 'ABOVE_OVER_PHASE', `above ${sec}s 大于该行时长 ${dur}s（${l.name} 行）`);
+    d.above = { pct, sec };
+  }
+  if (found.away) {
+    d.awaySec = durSec(found.away[1]);
+    if (!d.awaySec) ctx.err(l.line, 'LINE_SYNTAX', `没有被剔除的秒时不写 away 段（${l.name} 行）`);
+  }
+  ctx.derived.push(d);
+  return d;
 }
 
 // v0.4 草案 §5.1：act 段（秒数、平均强度、动作条数、点名的风险输出）
@@ -435,9 +478,10 @@ function checkClean(ctx, l, lagSec) {
   if (hr.na) { ctx.err(l.line, 'LINE_SYNTAX', `clean 行必须有心率统计，没有就整行省略：${l.raw}`); return null; }
   const sm = CLEAN_SEC_RE.exec(pieces[1] ?? '');
   if (!sm) { ctx.err(l.line, 'LINE_SYNTAX', `clean 行的心率统计之后必须是 sec 干净秒/相位时长：${l.raw}`); return null; }
-  checkSegs(ctx, l, pieces.slice(2), CLEAN_SEGS);
+  const found = checkSegs(ctx, l, pieces.slice(2), CLEAN_SEGS);
   const clean = Number(sm[1]);
   const total = Number(sm[2]);
+  checkDerived(ctx, l, found, hr, clean, null);   // §4：mean / above 只在干净秒上算，above 的秒数不得大于干净秒
   const minClean = Math.max(CLEAN_MIN_SEC, lagSec != null ? 2 * lagSec : 0);
   if (clean > total) ctx.err(l.line, 'CLEAN_OVER_PHASE', `clean 的干净秒 ${clean}s 大于相位时长 ${total}s`);
   if (clean < minClean) ctx.err(l.line, 'CLEAN_TOO_SHORT', `干净秒 ${clean}s 少于 max(10 s, 2 × lag) = ${minClean}s 时整行省略`);
@@ -487,12 +531,13 @@ function checkLineDate(ctx, l, how) {
   }
 }
 
+// → 基线 bpm（有数值时），否则 null
 function checkBaseline(ctx, l) {
   const pieces = l.body.split(' | ');
   const main = pieces[0];
-  if (NA_RE.test(main) && main !== 'n/a') { checkSegs(ctx, l, pieces.slice(1), BASELINE_SEGS); return; }
+  if (NA_RE.test(main) && main !== 'n/a') { checkSegs(ctx, l, pieces.slice(1), BASELINE_SEGS); return null; }
   const m = /^(\d+) bpm \(([a-z][a-z0-9-]*)(?:, n=\d+)?(?:, set (\d{4}-\d{2}-\d{2}), ([^,;()]+))?(?:; hrv \d+ ms)?\)$/.exec(main);
-  if (!m) { ctx.err(l.line, 'LINE_SYNTAX', `baseline 行格式不符：${l.raw}`); return; }
+  if (!m) { ctx.err(l.line, 'LINE_SYNTAX', `baseline 行格式不符：${l.raw}`); return null; }
   const method = m[2];
   if (DEPRECATED_BASELINE_METHODS.includes(method)) {
     if (ctx.at('0.4')) ctx.err(l.line, 'BASELINE_METHOD_DEPRECATED', `v0.4 起不得输出已弃用的基线方法 ${method}`);
@@ -516,19 +561,34 @@ function checkBaseline(ctx, l) {
     if (!BASELINE_METHODS.includes(old) && !DEPRECATED_BASELINE_METHODS.includes(old)) ctx.err(l.line, 'LINE_SYNTAX', `changed from 后面是未登记的方法 ${old}`);
   }
   if (ctx.at('0.4') && !found.age) ctx.err(l.line, 'BASELINE_AGE_MISSING', 'v0.4 起有数值的基线必须带 age 段');
+  return Number(m[1]);
 }
 
 function checkHistory(ctx, l) {
   const pieces = l.body.split(' | ');
-  if (pieces[0] === 'n/a') { checkSegs(ctx, l, pieces.slice(1), HISTORY_SEGS); return; }
-  if (!/^read-peaks [\d ·]+$/.test(pieces[0])) { ctx.err(l.line, 'LINE_SYNTAX', `history 行格式不符：${l.raw}`); return; }
-  checkSegs(ctx, l, pieces.slice(1), HISTORY_SEGS);
+  if (pieces[0] === 'n/a') {
+    const f = checkSegs(ctx, l, pieces.slice(1), HISTORY_SEGS);
+    if (f['read-peak-rel']) ctx.err(l.line, 'HISTORY_REL_COUNT', 'history: n/a 时不输出 read-peak-rel');
+    return;
+  }
+  const m = /^read-peaks ([\d ·]+)$/.exec(pieces[0]);
+  if (!m) { ctx.err(l.line, 'LINE_SYNTAX', `history 行格式不符：${l.raw}`); return; }
+  const f = checkSegs(ctx, l, pieces.slice(1), HISTORY_SEGS);
+  if (f['read-peak-rel']) {
+    // v0.4 §4-6：与 read-peaks 一一对应；read-peaks 是 · 的位置这里也必须是 ·
+    const abs = m[1].trim().split(/\s+/);
+    const rel = f['read-peak-rel'][0].slice('read-peak-rel '.length).split(' ');
+    if (abs.length !== rel.length) ctx.err(l.line, 'HISTORY_REL_COUNT', `read-peak-rel 的个数（${rel.length}）必须等于 read-peaks 的个数（${abs.length}）`);
+    else abs.forEach((a, i) => { if (a === '·' && rel[i] !== '·') ctx.err(l.line, 'HISTORY_REL_COUNT', `read-peaks 第 ${i + 1} 项是 ·，read-peak-rel 对应项也必须是 ·`); });
+  }
 }
 
+// → 相对写法时返回各相位被剔除（hidden / unfocused）的秒数与区间数 { gen: {sec, n}, … }；none 时全 0；旧的绝对写法返回 null
 function checkAway(ctx, l) {
   const pieces = l.body.split(' | ');
   checkSegs(ctx, l, pieces.slice(1), []);
-  if (pieces[0] === 'none') return;
+  const sums = { gen: { sec: 0, n: 0 }, read: { sec: 0, n: 0 }, write: { sec: 0, n: 0 } };
+  if (pieces[0] === 'none') return sums;
   const absRe = new RegExp(`^${CLOCK}–${CLOCK} (hidden|idle|unfocused|offscreen)(?: \\[\\d+–\\d+\\])?$`);
   const relRe = /^-(\d+):(\d{2})\.\.-(\d+):(\d{2}) (hidden|idle|unfocused|offscreen) \((gen|read|write)\)(?: \[\d+–\d+\])?$/;
   let abs = false;
@@ -542,11 +602,13 @@ function checkAway(ctx, l) {
       const from = Number(m[1]) * 60 + Number(m[2]);
       const to = Number(m[3]) * 60 + Number(m[4]);
       if (from < to) ctx.err(l.line, 'LINE_SYNTAX', `away 区间起点必须早于终点：${span}`);
+      if (m[5] === 'hidden' || m[5] === 'unfocused') { sums[m[6]].sec += Math.max(0, from - to); sums[m[6]].n++; }
     } else {
       ctx.err(l.line, 'LINE_SYNTAX', `away 区间格式不符：${span}`);
     }
   }
   if (abs && ctx.at('0.4')) ctx.warn(l.line, 'AWAY_ABSOLUTE', 'v0.4 起 away 应写相对 sent 的偏移（绝对时刻写法 1.0 移除）');
+  return abs ? null : sums;
 }
 
 // v0.3 §5.8 haptics 行的主体 + v0.4 §13 tuned 段（只列改过的参数）
@@ -635,7 +697,9 @@ function checkFeedback(ctx, l) {
   if (events > FEEDBACK_MAX_EVENTS) ctx.err(l.line, 'FEEDBACK_TOO_MANY', `feedback 行最多 ${FEEDBACK_MAX_EVENTS} 个事件段，多的丢弃最早的并写 +N more`);
 }
 
-function checkStream(ctx, l, sparse, lagSec) {
+// v0.4 草案 §1.2。genLine：同一块的 gen 行（括号里的 ttft / reasoning / body 与 stream 行的 wait / body 必须对得上）
+// → { pos: 是否带 pos 段 } 或 null
+function checkStream(ctx, l, sparse, lagSec, genLine) {
   const lm = /^lag (\d+)s$/.exec(l.meta || '');
   if (!lm) { ctx.err(l.line, 'LINE_SYNTAX', 'stream 行括号里必须是 lag Ns'); }
   else if (lagSec != null && Number(lm[1]) !== lagSec) ctx.err(l.line, 'STREAM_LAG_MISMATCH', `stream 行的 lag ${lm[1]}s 与首行 lag="${ctx.attrs.lag}" 不一致`);
@@ -644,18 +708,42 @@ function checkStream(ctx, l, sparse, lagSec) {
   const wait = new RegExp(`^wait ${DUR}(?: \\([^()]*\\))?$`);
   const body = new RegExp(`^body ${DUR}, (\\d+) chars$`);
   const bm = pieces[1] ? body.exec(pieces[1]) : null;
-  if (pieces.length < 3 || !wait.test(pieces[0]) || !bm) { ctx.err(l.line, 'LINE_SYNTAX', `stream 行格式不符：${l.raw}`); return; }
-  const hr = parseHr(ctx, { ...l, name: 'stream' }, pieces[2].replace(/ carryover$/, ''));
-  if (!hr) return;
+  if (pieces.length < 3 || !wait.test(pieces[0]) || !bm) { ctx.err(l.line, 'LINE_SYNTAX', `stream 行格式不符：${l.raw}`); return null; }
+  const waitSec = durSec(pieces[0].slice(5));
+  const bodySec = durSec(pieces[1].slice(5));
+  // §1.2-5：wait = gen 的 ttft + reasoning，body = gen 的 body（都是墙钟；允许 1 秒取整误差）
+  const gp = genLine && /^(?:\d+s|\d+:\d{2}) \(([^()]*)\)/.exec(genLine.body);
+  if (gp) {
+    const g = {};
+    for (const it of gp[1].split(', ')) { const mm = /^(ttft|reasoning|body) (\d+s|\d+:\d{2})$/.exec(it); if (mm) g[mm[1]] = durSec(mm[2]); }
+    if (g.body != null && Math.abs(g.body - bodySec) > 1) ctx.err(l.line, 'STREAM_GEN_MISMATCH', `stream 行的 body ${bodySec}s 与 gen 行括号里的 body ${g.body}s 不一致`);
+    if (g.ttft != null && Math.abs(g.ttft + (g.reasoning ?? 0) - waitSec) > 1) ctx.err(l.line, 'STREAM_GEN_MISMATCH', `stream 行的 wait ${waitSec}s 应等于 gen 行的 ttft + reasoning（${g.ttft + (g.reasoning ?? 0)}s）`);
+  }
+  const hr = parseHr(ctx, { ...l, name: 'stream' }, pieces[2]);
+  if (!hr) return null;
   const found = checkSegs(ctx, l, pieces.slice(3), STREAM_SEGS);
-  checkAct(ctx, l, found.act, durSec(pieces[1].slice(5)));   // §5.1：统计范围是 body 区间
-  if (hr.peak != null && sparse) ctx.err(l.line, 'SPARSE_FIELD', '稀疏来源不得输出 peak（stream 行）');
+  const cov = found.cov ? Number(found.cov[1]) : null;
+  checkAct(ctx, l, found.act, bodySec);   // §5.1：统计范围是 body 区间
+  // §1.2：body 区间按相位行的全部峰值规则检查（最短时长、cov、carryover）
+  if (hr.peak != null) {
+    if (sparse) ctx.err(l.line, 'SPARSE_FIELD', '稀疏来源不得输出 peak（stream 行）');
+    const minPhase = Math.max(PEAK_MIN_PHASE_SEC, lagSec != null ? 2 * lagSec : 0);
+    if (bodySec != null && bodySec < minPhase) ctx.err(l.line, 'PEAK_SHORT_PHASE', `body ${bodySec}s 短于 ${minPhase}s，不得输出 peak（stream 行）`);
+    if (cov != null && cov < 70) ctx.err(l.line, 'PEAK_LOW_COVERAGE', `cov ${cov}% < 70% 时不得输出 peak（stream 行）`);
+    if (lagSec != null) {
+      if (hr.at < lagSec && !hr.carryover) ctx.err(l.line, 'CARRYOVER_MISSING', `peak @${hr.at}s 早于 lag ${lagSec}s，必须写 carryover（stream 行）`);
+      if (hr.at >= lagSec && hr.carryover) ctx.err(l.line, 'CARRYOVER_WRONG', `peak @${hr.at}s 不早于 lag ${lagSec}s，不得写 carryover（stream 行）`);
+    }
+  }
   if (found.pos) {
     const [n, total, para, paras] = found.pos.slice(1).map(Number);
     if (hr.peak == null) ctx.err(l.line, 'STREAM_POS_WITHOUT_PEAK', '没有 peak 时不得输出 pos');
+    else if (lagSec != null && hr.at < lagSec) ctx.err(l.line, 'STREAM_POS_IN_WAIT', `peakAt − lag 落在 wait 里（peak @${hr.at}s < lag ${lagSec}s），不得输出 pos`);
     if (sparse) ctx.err(l.line, 'SPARSE_FIELD', '稀疏来源不得输出 pos（stream 行）');
     if (total !== Number(bm[1]) || n > total || para > paras || para < 1) ctx.err(l.line, 'STREAM_POS_RANGE', `pos 必须满足 已显示 ≤ 总字数（= body 字数），段落号在 1–总段落数之间：${found.pos[0]}`);
   }
+  checkDerived(ctx, l, found, hr, bodySec, null);
+  return { pos: Boolean(found.pos) };
 }
 
 // v0.4 草案 §8.3
@@ -691,9 +779,11 @@ function checkNative(ctx, l) {
 function checkLines(ctx, lines) {
   const { err, warn, at, attrs } = ctx;
   const sparse = /^\d+(?:ms|s)$/.test(attrs.cadence || '') && !attrs.cadence.endsWith('ms') && parseInt(attrs.cadence, 10) >= 30;
-  const lagSec = at('0.4') && /^\d+s$/.test(attrs.lag || '') ? parseInt(attrs.lag, 10) : null;
+  const lagN = /^(\d+)s$/.test(attrs.lag || '') ? parseInt(attrs.lag, 10) : null;
+  const lagSec = at('0.4') && lagN != null && lagN >= LAG_MIN_SEC && lagN <= LAG_MAX_SEC ? lagN : null;
   const first = {};
   const info = {};
+  ctx.derived = [];   // v0.4 §4：各行的 mean / above / away 段，循环后再与基线、away 行对账
   // v0.4 草案 §5.6：块里出现过的执行器 id（actuator / native 行），用来认出玩具上的传感器行
   const actuatorIds = new Set(lines.filter((l) => (l.name === 'actuator' || l.name === 'native') && l.meta).map((l) => l.meta.split(', ')[0]));
   const cleans = [];
@@ -716,7 +806,7 @@ function checkLines(ctx, lines) {
         else if (at('0.3') && SCOPE_REPLAY_RE.test(l.raw)) info.scope = 'replay';
         else err(l.line, 'LINE_SYNTAX', `scope 行不是登记过的固定句：${l.raw}`);
         break;
-      case 'baseline': checkBaseline(ctx, l); break;
+      case 'baseline': info.baselineBpm = checkBaseline(ctx, l); break;
       case 'prior': {
         if (!/^[^,]+, .+$/.test(l.meta)) { err(l.line, 'LINE_SYNTAX', `prior 行括号里必须是 来源, 日期：${l.raw}`); break; }
         checkLineDate(ctx, l, 'prior');
@@ -735,7 +825,7 @@ function checkLines(ctx, lines) {
         info.readPos = l;
         break;
       }
-      case 'away': checkAway(ctx, l); break;
+      case 'away': if (!('awaySums' in info)) info.awaySums = checkAway(ctx, l); break;
       case 'send': {
         const pieces = l.body.split(' | ');
         if (!SEND_RE.test(pieces[0])) err(l.line, 'LINE_SYNTAX', `send 行格式不符：${l.raw}`);
@@ -772,7 +862,7 @@ function checkLines(ctx, lines) {
         if (l.name === 'feedback') checkFeedback(ctx, l);
         if (l.name === 'haptics') checkHaptics(ctx, l);
         if (l.name === 'gates') checkGates(ctx, l);
-        if (l.name === 'stream') { info.stream = l; checkStream(ctx, l, sparse, lagSec); }
+        if (l.name === 'stream') { info.stream = l; info.streamPos = checkStream(ctx, l, sparse, lagSec, first.gen)?.pos; }
         if (l.name === 'clean') {
           if (cleans.some((c) => c.phase === l.meta)) err(l.line, 'LINE_DUP', `clean(${l.meta}) 行只能出现一次`);
           const c = checkClean(ctx, l, lagSec);
@@ -797,6 +887,7 @@ function checkLines(ctx, lines) {
 
   // 跨行规则
   const trig = attrs.trigger;
+  const discardedTurn = trig === 'swipe' || trig === 'regenerate' || info.scope === 'discarded';
   if (at('0.3')) {
     const minimal = lines.some((l) => l.raw === MINIMAL_WARN);
     if (!first.scope && !minimal && attrs.replay !== 'group') warn(first.sent?.line ?? 2, 'SCOPE_MISSING', 'v0.3 起生产者应该在 sent 后输出 scope 行');
@@ -825,7 +916,45 @@ function checkLines(ctx, lines) {
     if (phase.dur != null && c.clean > phase.dur - phase.act.sec) err(c.l.line, 'CLEAN_OVER_PHASE', `干净秒 ${c.clean}s 大于相位时长减去 act ${phase.act.sec}s`);
   }
   if (at('0.4') && info.nativeLine && first.haptics && first.haptics.body === 'off') err(info.nativeLine.line, 'NATIVE_HAPTICS_OFF', 'haptics 行是 off 时不得输出 native 行');
-  if (at('0.4') && attrs.stream === 'yes' && info.readPos) err(info.readPos.line, 'READPOS_FORBIDDEN', 'stream="yes" 时不得输出 read-pos（位置看 stream 行的 pos）');
+  if (at('0.4')) {
+    const hasReply = info.gen && !info.gen.na && info.gen.dur != null;
+    // §1.1、§1.2-1：有被读的回复时应该写 stream 属性；stream="yes" 时应该有 stream 行
+    if (attrs.stream === 'yes' && info.readPos) err(info.readPos.line, 'READPOS_FORBIDDEN', 'stream="yes" 时不得输出 read-pos（位置看 stream 行的 pos）');
+    if (hasReply && !('stream' in attrs)) warn(1, 'STREAM_ATTR_MISSING', '本轮有被读的回复，首行应该写 stream="yes|no"（缺省读者按未知处理）');
+    if (hasReply && attrs.stream === 'yes' && !info.stream) warn(first.gen.line, 'STREAM_LINE_MISSING', 'stream="yes" 时应该输出 stream 行');
+    if (discardedTurn && info.streamPos) err(info.stream.line, 'STREAM_POS_DISCARDED', '换页 / 重新生成时被读的回复已不在上下文里，stream 行不得带 pos');
+    // §2.1：块里有 peak / carryover / tail-max / stream 行时首行必须写 lag
+    const needsLag = Boolean(info.stream) || ctx.derived.some((d) => d.hr.peak != null || d.hr.carryover);
+    if (needsLag && !('lag' in attrs)) err(1, 'LAG_MISSING', '块里有 peak / carryover / tail-max / stream 行时首行必须写 lag（v0.4 §2.1）');
+    // §4：派生事实与基线、阈值、away 行对账
+    const base = info.baselineBpm ?? null;
+    let aboveThr = null;
+    for (const d of ctx.derived) {
+      if (d.mean) {
+        if (base == null) err(d.l.line, 'DERIVED_WITHOUT_BASELINE', `没有基线时不得输出 mean（${d.l.name} 行）`);
+        else {
+          const want = Math.round(Math.abs(d.mean.value - base) / base * 100) * (d.mean.value >= base ? 1 : -1);
+          if (Math.abs(want - d.mean.pct) > MEAN_PCT_TOLERANCE) err(d.l.line, 'MEAN_PCT_MISMATCH', `mean ${d.mean.value} 相对基线 ${base} 应写 ${want >= 0 ? '+' : '-'}${Math.abs(want)}%（写了 ${d.mean.pct >= 0 ? '+' : '-'}${Math.abs(d.mean.pct)}%，${d.l.name} 行）`);
+        }
+      }
+      if (d.above) {
+        if (base == null) err(d.l.line, 'DERIVED_WITHOUT_BASELINE', `没有基线时不得输出 above（${d.l.name} 行）`);
+        else if (d.hr.max != null && d.hr.max <= base * (1 + d.above.pct / 100)) err(d.l.line, 'ABOVE_INCONSISTENT', `above +${d.above.pct}% ${d.above.sec}s，但区间最大值 ${d.hr.max} 不高于基线 ${base} × ${1 + d.above.pct / 100}（${d.l.name} 行）`);
+        if (aboveThr == null) aboveThr = d.above.pct;
+        else if (aboveThr !== d.above.pct) err(d.l.line, 'ABOVE_THRESHOLD_MIXED', `一个块里 above 的阈值必须相同（前面是 +${aboveThr}%，这里是 +${d.above.pct}%）`);
+      }
+      if (d.awaySec != null && d.phase && info.awaySums) {
+        const s = info.awaySums[d.phase];
+        if (d.awaySec < s.sec - s.n || (s.n === 0 && d.awaySec > 0)) err(d.l.line, 'AWAY_SEG_MISMATCH', `${d.phase} 行的 away ${d.awaySec}s 与 away 行里该相位的 hidden / unfocused 区间之和 ${s.sec}s 对不上`);
+      }
+    }
+    if (info.awaySums) {
+      for (const ph of CLEAN_PHASES) {
+        const p = info[ph];
+        if (info.awaySums[ph].sec > 0 && p && !p.na && p.derived && p.derived.awaySec == null) warn(first[ph].line, 'AWAY_SEG_MISSING', `${ph} 相位有被剔除的 ${info.awaySums[ph].sec}s，应该写 away 段`);
+      }
+    }
+  }
 }
 
 // 按行名取值（读者用）：getLine(result, 'read') → 第一条同名行或 null

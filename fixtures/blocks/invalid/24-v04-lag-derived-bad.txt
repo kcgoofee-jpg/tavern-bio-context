@@ -1,0 +1,12 @@
+<bio_context v="0.4" mode="author" view="backstage" source="heartlink" cadence="1s" trigger="normal" stream="no">
+sent: 22:01:30
+scope: gen, read = previous reply; write, send = this message
+baseline: 68 bpm (rest, n=120) | age 25m | noise ±3
+history: read-peaks 84 90 · | read-peak-rel +24% +32%
+gen: 1:00 | hr 72→88 [70–100] | cov 95% | mean 105 (+54%)
+read: 40s | hr 88→84 [80–92] peak 92 @20s | cov 96% | mean 85 (+10%) | above +50% 45s | away 10s | tail-max 90 @+0s
+write: 20s, 48 chars, pauses 1, edits 0 | hr 84→80 [79–85] | cov 100% | above +20% 0s | tail-max 99 @+3s
+away: -2:45..-2:15 hidden (read); -0:40..-0:32 unfocused (write)
+send: 80 bpm (+18%)
+note: observable record only; phase edges are page events; hr lags seconds; wrist motion lowers confidence
+</bio_context>
