@@ -708,7 +708,8 @@ function checkLines(ctx, lines) {
         }
         if (c.kind === 'signal') {
           if (BUS_ONLY_KINDS.includes(l.name)) err(l.line, 'KIND_NOT_IN_BLOCK', `${l.name} 只在总线上流转，不进块`);
-          if (at('0.4') && actuatorIds.has(l.meta.split(', ')[0])) checkToySensor(ctx, l);
+          // v0.4 §5.6-1：括号里是执行器 id，或设备 id（某个执行器 id 的前缀）
+          if (at('0.4')) { const id = l.meta.split(', ')[0]; if (actuatorIds.has(id) || [...actuatorIds].some((a) => a.startsWith(`${id}:`))) checkToySensor(ctx, l); }
           break;
         }
         const reg = c.reg;

@@ -11,8 +11,8 @@ send: 80 bpm (+21%)
 haptics(heartlink): on | cap 80% | profile steady | actuators 2
 actuator(intiface:0:1): battery 62% | charging no | link ok
 clean(read): hr 74→78 [72–80] peak 80 @31s | sec 34/60 | cov 91%
-pressure(intiface:0:1, 100ms): read +0→+12 peak +18 @22s | write +2
-button(intiface:0:1, event): read @41s ×1
+pressure(intiface:0, 100ms): read +0→+12 peak +18 @22s | write +2
+button(intiface:0, event): read @41s ×1
 feedback(heartlink): acts 4 sent, 3 done, 1 cut | stronger +20% read @30s
 note: observable record only; phase edges are page events; hr lags seconds; wrist motion lowers confidence
 </bio_context>

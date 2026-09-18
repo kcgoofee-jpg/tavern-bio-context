@@ -14,6 +14,6 @@ clean(gen): hr 70→74 [69–76] | sec 20/25
 clean(read): hr 74→78 [72–80] peak 80 @31s | sec 14/60 | cov 91%
 clean(write): hr 84→80 [79–85] peak 85 @25s | sec 11/20
 clean(send): hr 70→72 [69–74] | sec 20/30
-pressure(intiface:0:1, 100ms): read 7.9→12.3 kPa peak 14.1 @22s
+pressure(intiface:0, 100ms): read 7.9→12.3 kPa peak 14.1 @22s
 note: observable record only; phase edges are page events; hr lags seconds; wrist motion lowers confidence
 </bio_context>

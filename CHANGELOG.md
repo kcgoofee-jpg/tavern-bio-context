@@ -13,6 +13,10 @@
 - 带定义的派生事实：相位行段 `mean N (±N%)`、`above +N% 时长`、`away 时长`；`history` 段 `read-peak-rel`；读法改用 `noise`，分“起伏 / 显著升高”两档。
 - away 相对 `sent` 的写法 `-m:ss..-m:ss 类型 (相位)` 与类型 `unfocused`。
 - 世界书扫描缺省改为关闭。
+
+### Changed（草案，2026-09-19，heartlink 实现时的发现）
+- §5.1-3 `act` 段的 `mean` 改为按**实际驱动的毫秒数**加权（`∫ 强度 dt ÷ 驱动毫秒数`），不再是整秒强度的算术平均：短动作跨秒时首尾两秒会把强度拉低（写 0.8、8 秒，旧口径得 71%）。秒数仍逐秒计。
+- §5.6-1 玩具传感器行括号里可以写**设备 id**（该设备执行器 id 的公共前缀，如 `intiface:0`）：buttplug 的压力 / 按键是设备上独立的特性，不属于某一路输出。校验器按前缀识别来自执行器的传感器行。
 - 执行器与相位的重叠（§5）：相位行与 `stream` 行新增 `act N s, mean N%, N act(s)[ (Estim)]`（本相位内执行器运行的秒数、时间加权平均强度、动作条数，有风险的输出必须点名）；算的是**生产者发出的动作**，不是设备确认执行的时间；新增扩展行 `clean(gen|read|write): hr … | sec 干净秒/相位时长 [| cov …]`，只用没有驱动的那些秒统计，干净秒不足 `max(10 s, 2 × lag)` 或不足相位时长 30% 时整行省略；基线卫生：会话内算出的基线窗口必须排除驱动秒，不够就按 §3 优先级降级并写 `warn: baseline degraded to …`；读法（非规范）只陈述事实——驱动秒里的心率同时反映设备与剧情、腕式在动作中不可靠——判断留给用户自己的模型，并给出“跨轮比较 `clean`”这一条不具约束力的例子；聊天变量新增 `phases[gen|read|write].act` / `.clean`（Schema 在 `v` 为 `0.4` 时检查），总线不加新方法。
 - 玩具上的传感器输入（§5.6）：`pressure` / `button` 等已有 kind 的 `device` 写**执行器 id**，`unit` 为 `raw`，块里只写带 `+` / `-` 的相对变化、不得换算成物理单位，也不得与 `sensor(…)` 的信号源设备混同、不进相位心率统计。
 - 执行器电量与连接（§8）：`tbc.push({ kind: 'battery' | 'charging', device: <执行器 id> })` 归到执行器；`tbc.actuatorLink(id, 'ok' | 'reconnecting' | 'lost')`；`tbc.actuators()` 增加 `battery`、`charging`、`batteryAt`、`link`，`tbc.outputState()` 增加 `actuatorStatus`；扩展行 `actuator(<执行器 id>): battery N%[ low] | charging yes|no | link ok|reconnecting|lost`（L0，只在有执行器报告时出现）；`low` 只在电量 ≤ 15% 时写（经验值），不写推断。
