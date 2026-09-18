@@ -1,4 +1,4 @@
-<bio_context v="0.4" mode="character" view="device-aware" source="heartlink" device="polar-h10" transport="ble" cadence="1s" rr="yes" trigger="normal" date="2026-09-19" tz="+08:00" stream="no" lag="4s">
+<bio_context v="0.4" mode="character" view="device-aware" source="heartlink" device="polar-h10" transport="ble" cadence="1s" rr="yes" trigger="normal" date="2026-09-18" tz="+08:00" stream="no" lag="4s">
 sent: 22:40:10
 scope: gen, read = previous reply; write, send = this message
 baseline: 66 bpm (rest, n=120) | age 8m | noise ±3

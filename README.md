@@ -8,7 +8,7 @@
 
 | 项 | 当前 |
 |---|---|
-| 规范 | v0.2 定稿候选（[`docs/spec-v0.2-zh.md`](docs/spec-v0.2-zh.md)）；v0.3 定稿候选（[`docs/spec-v0.3-draft-zh.md`](docs/spec-v0.3-draft-zh.md)）；v0.4 草案（[`docs/spec-v0.4-draft-zh.md`](docs/spec-v0.4-draft-zh.md)：流式、心率滞后、基线年龄与噪声、派生事实、执行器与相位的重叠、执行器电量与连接、设备自带模式直通） |
+| 规范 | v0.2 定稿候选（[`docs/spec-v0.2-zh.md`](docs/spec-v0.2-zh.md)）；v0.3 定稿候选（[`docs/spec-v0.3-draft-zh.md`](docs/spec-v0.3-draft-zh.md)）；v0.4 草案（[`docs/spec-v0.4-draft-zh.md`](docs/spec-v0.4-draft-zh.md)：流式、心率滞后、基线年龄与噪声、派生事实、执行器与相位的重叠与玩具传感器、读者离开的写法与类型（hidden / unfocused / idle / offscreen）、世界书扫描缺省关、执行器电量与连接、设备自带模式直通） |
 | 规范用语与一致性 | [`docs/conformance-zh.md`](docs/conformance-zh.md)（必须 / 应该 / 可以；一致性角色；版本策略；登记表） |
 | 机器可读定义 | [`schema/`](schema)：注入块 ABNF、聊天变量、卡片声明、诊断、触觉动作、执行器能力 |
 | 校验 | `npm install && npm test`；单独校验一个块：`node tools/validate.mjs 块.txt`（生产者档），`--reader`（读者档） |
@@ -130,7 +130,7 @@
 v0.3 入戏模式的一轮（数值为编造，见 [`fixtures/blocks/valid/`](fixtures/blocks/valid)）：
 
 ```text
-<bio_context v="0.3" mode="character" view="in-story" source="heartlink" device="whoop-5.0" transport="ble" cadence="1s" rr="yes" trigger="normal" perceiver="小影" date="2026-09-17" tz="+08:00">
+<bio_context v="0.3" mode="character" view="in-story" source="heartlink" device="whoop-5.0" transport="ble" cadence="1s" rr="yes" trigger="normal" perceiver="艾拉" date="2026-09-17" tz="+08:00">
 sent: 21:04:40
 scope: gen, read = previous reply; write, send = this message
 baseline: 72 bpm (rest, n=412; hrv 64 ms)

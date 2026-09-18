@@ -1,4 +1,4 @@
-<bio_context v="0.3" mode="character" view="in-story" source="heartlink" transport="ble" cadence="1s" rr="no" trigger="normal" replay="group" perceiver="小影" date="2026-09-17" tz="+08:00">
+<bio_context v="0.3" mode="character" view="in-story" source="heartlink" transport="ble" cadence="1s" rr="no" trigger="normal" replay="group" perceiver="艾拉" date="2026-09-17" tz="+08:00">
 sent: 21:20:00
 scope: gen, read = previous reply; write, send = this message
 baseline: 71 bpm (prior-rhr)

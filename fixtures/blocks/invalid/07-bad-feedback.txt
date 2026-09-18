@@ -1,4 +1,4 @@
-<bio_context v="0.3" mode="character" view="in-story" source="heartlink" device="whoop-5.0" transport="ble" cadence="1s" rr="yes" trigger="normal" perceiver="小影">
+<bio_context v="0.3" mode="character" view="in-story" source="heartlink" device="whoop-5.0" transport="ble" cadence="1s" rr="yes" trigger="normal" perceiver="艾拉">
 sent: 21:04:40
 scope: gen, read = previous reply; write, send = this message
 baseline: 72 bpm (quiet-median, n=412; hrv 64 ms)

@@ -80,7 +80,7 @@
 - **P-1 头部加来源属性**：`<bio_context v="0.2" mode="…" source="heartlink" device="whoop-5.0" transport="ble" cadence="1s" rr="yes" trigger="normal|swipe|regenerate|continue|impersonate">`。理由：Apple 研究表 1 显示同为"心率流"，Garmin 0.25–0.5 s、华为/WHOOP/Polar 1 s、Pixel 2 s、Apple Watch 5 s（HealthKit 后台 30 s）、三星后台 60 s、Oura 约 300 s；模型和世界书必须知道这条记录的时间分辨率；`trigger` 让模型知道这一轮是重roll还是新消息。
 - **P-2 相位行加覆盖率 `cov`**：`read: 2:17 | … | cov 94% | rr-loss 6%`。Apple 研究以"时段内读数覆盖 ≥70%"作为数据有效的门槛；我们只有 rr-loss（间期缺失）没有样本覆盖率，断连/掉包时相位统计会用很少的点得出结论。
 - **P-3 稀疏来源模式**：cadence ≥ 30 s 的来源（Apple Watch 经快捷指令、三星导出、Oura）不输出 `series` 与 `hrv`，相位行样本数 < 5 时写 `n/a (sparse)`。理由：always-here 这类 iOS 快捷指令路线和 Akari Pulse 这类日级桥都是现实存在的来源，协议现在默认 1 Hz。
-- **P-4 `read-pos` 加 `partial` 标记**：`readSec × cps < 0.8 × replyChars` 时写 `read-pos: partial, peak at 97% of read time`，不再给字数百分比。真机证据见 NEXT.md（3809 字回复读 137 秒，峰值被算成 21%）。
+- **P-4 `read-pos` 加 `partial` 标记**：`readSec × cps < 0.8 × replyChars` 时写 `read-pos: partial, peak at 97% of read time`，不再给字数百分比。真机证据：3809 字回复读 137 秒，峰值被算成 21%。
 - **P-5 持久化规则（实现约束章节）**：设备脚本不得主动调用宿主的整聊天保存；消息级数据在宿主自己保存之前写入（ST：生成结束到 `saveChatConditional` 之间），并同步写 `swipe_info[swipe_id].extra`；聊天变量走元数据保存接口。理由：1.12.14 → 1.19 完整性检查逐步收紧，#5983 的锁死路径。
 - **P-6 生成门控**：只对宿主认定的用户可见生成注入；优先使用宿主提供的过滤能力（ST 1.13.2+ `filter`），type 白名单只作回退；`continue` 只更新 `trigger`，不重算相位。
 - **P-7 解释层的两种投递方式**：(a) 全局世界书（现状）；(b) 设备脚本在 `WORLDINFO_SCAN_DONE`（ST 1.15+）里把同样的三条内容作为条目加进扫描结果，用户不必导入世界书。协议文本两种都写，内容以世界书文案为准。

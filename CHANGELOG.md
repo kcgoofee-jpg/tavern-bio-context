@@ -25,6 +25,12 @@
 - 设备自带模式直通（§9）：`nativePatterns` 可写成列表（`id`、`name`、`outputs`、`levels`、`stoppable`、`maxDurationMs`、`map`），序号 = 位置；`<bio_act pattern="native" mode="序号|名字"/>`；扩展行 `native(<执行器 id>): 1 波浪 | 3 失控 (unstoppable, 60s, opt-in)`，只列用户开启的模式，`haptics off` 时不出现；档位与频率照常约束；找不到模式时跳过（不退回 `pulse`）；停不下来的模式的护栏写成可检查条目，停止后仍在运行时 `feedback` 备注与事件 `reason` 写 `native-unstoppable`；`outputState()` 增加 `nativeRunning`。
 - 参考实现：`tools/bio-act.mjs` 新增 `NATIVE_PATTERN`、`resolveNative()`，`parseBioActs(text, { actuators })` 解析 `mode`，没传执行器列表时直通动作跳过（`NATIVE_NO_CAPS`）；错误代码 `NATIVE_NO_MODE`、`NATIVE_UNAVAILABLE`、`NATIVE_OFF`、`NATIVE_TARGET_AMBIGUOUS`、`MODE_IGNORED`。`tools/block.mjs` 在 `v="0.4"` 时检查 `actuator` / `native` 行与 `native-unstoppable` 备注（`ACTUATOR_*`、`NATIVE_*`），以及 `act` 段、`clean` 行、来自执行器的传感器行（`ACT_*`、`CLEAN_*`、`TOY_SENSOR_*`）。Schema：`actuator` 的 `nativePatterns` 列表写法，`bio-act` 的 `pattern: native` 与 `mode`，`feedback` 的 `reason: native-unstoppable`。样例 `blocks/valid/13`、`14`，`blocks/invalid/20`、`21`、`22`，以及 `bio-act` 与 JSON 样例（`bio-variable.v04-phases`）。
 
+### Docs（2026-09-18 整理）
+- 样例与示例里的感知者名字改为中性的“艾拉”（README、v0.3 §2 示例、`fixtures/blocks`、`fixtures/json`、`fixtures/sanitize`）；校验结果不变。
+- v0.2 标为历史稿（已被 v0.3 定稿候选取代）；README 的 v0.4 清单补上 §5.6 玩具传感器、§6 离开类型、§7 世界书扫描缺省关。
+- `device-interface-zh.md`：本机桥目前没有维护中的实现（参考实现只带客户端）；`st-compat-audit`：去掉对私有文件的引用。
+- 样例 `blocks/valid/14` 首行日期更正为 2026-09-18。
+
 ### Deprecated（草案）
 - `quiet-median`、`p20`：v0.4 起生产者不得输出。
 - 以下 1.0 移除：`history` 的 `read-peaks` 绝对值、`MM-DD` 日期、away 绝对时刻写法、feedback 旧备注写法 `(act N, Ns in)`。

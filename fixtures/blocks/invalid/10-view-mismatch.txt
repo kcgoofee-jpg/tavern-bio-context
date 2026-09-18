@@ -1,4 +1,4 @@
-<bio_context v="0.3" mode="author" view="device-aware" source="heartlink" perceiver="小影">
+<bio_context v="0.3" mode="author" view="device-aware" source="heartlink" perceiver="艾拉">
 sent: 20:31:05
 scope: gen, read = previous reply; write, send = this message
 baseline: n/a (session too short)

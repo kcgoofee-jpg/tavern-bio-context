@@ -138,7 +138,7 @@ window.addEventListener('bio:sample', (e) => { /* e.detail: Sample，实时 */ }
 
 推荐用法：把 `summary.readPeak / summary.baseline` 作为强度上限的缩放系数，而不是直接映射；`hrv` 明显低于 `summary.baseline.hrv` 时降档。协议不规定映射曲线。
 
-跨进程（Intiface 插件、MCP 服务器、Windows 桥、MultiFunPlayer 插件）：本机桥（heartlink 0.9 规划中）在 `ws://127.0.0.1:27130/tbc/v0.2` 推送同样的消息。**连接前必须完成 v0.3 §6 的握手**（Origin 白名单、配对令牌、按权限授权）；读事件需要 `read` 权限，推样本和上下文需要 `push`，驱动执行器需要单独勾选的 `actuate`：
+跨进程（Intiface 插件、MCP 服务器、Windows 桥、MultiFunPlayer 插件）：本机桥（目前没有维护中的实现，参考实现只带客户端）在 `ws://127.0.0.1:27130/tbc/v0.2` 推送同样的消息。**连接前必须完成 v0.3 §6 的握手**（Origin 白名单、配对令牌、按权限授权）；读事件需要 `read` 权限，推样本和上下文需要 `push`，驱动执行器需要单独勾选的 `actuate`：
 
 ```json
 { "event": "bio:inject", "detail": { "text": "<bio_context …>", "mode": "author", "summary": { … } } }
