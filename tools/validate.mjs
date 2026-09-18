@@ -158,7 +158,7 @@ for (const p of PATTERNS) {
     ['档位：强度 0 仍是停止', liftIntensity(0, 0.9) === 0 && patternFrames('pulse', 0, null, fz)[0][1] === 0],
     ['档位：不传参数与初版一致', JSON.stringify(patternFrames('wave', 0.8, null)) === JSON.stringify(patternFrames('wave', 0.8, null, resolveSettings('slow-burn')))],
     ['自定义：覆盖默认时长', patternFrames('long', 1, null, resolveSettings('slow-burn', { defaultMs: { long: 8000 } })).at(-1)[0] === 8000],
-    ['自定义：每条回复上限最多 5', resolveSettings('frenzy', { maxPerReply: 9 }).maxPerReply === 5 && parseBioActs('<bio_act/>'.repeat(6), { maxPerReply: 5 }).acts.length === 5],
+    ['自定义：每条回复上限可调，最多 50', resolveSettings('frenzy', { maxPerReply: 99 }).maxPerReply === 50 && resolveSettings('frenzy', { maxPerReply: 9 }).maxPerReply === 9 && parseBioActs('<bio_act/>'.repeat(6), { maxPerReply: 5 }).acts.length === 5],
     ['显示时隐藏全部标签（含思维链里的）', hideBioActs('<think><bio_act/></think>她笑了<bio_act pattern="wave"/>。') === '<think></think>她笑了。'],
     ['v0.4 直通：帧只作包络，0 仍是停止', JSON.stringify(patternFrames(NATIVE_PATTERN, 0.5, null, resolveSettings('steady'))) === JSON.stringify([[0, 0.625], [8000, 0]]) && patternFrames(NATIVE_PATTERN, 0, 3000, resolveSettings('max'))[0][1] === 0],
     ['v0.4 直通：native 不在抽象模式表里', !PATTERNS.includes(NATIVE_PATTERN)],

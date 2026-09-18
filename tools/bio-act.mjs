@@ -9,7 +9,7 @@ export const RISKY_OUTPUTS = ['Temperature', 'Estim', 'Spray'];
 export const PATTERNS = ['pulse', 'double', 'triple', 'long', 'heartbeat', 'wave'];
 // v0.4 草案 §9：设备自带模式直通。不在 PATTERNS 里（抽象模式表与 v0.3 一致）
 export const NATIVE_PATTERN = 'native';
-export const MAX_PER_REPLY = 3;
+export const MAX_PER_REPLY = 50;   // 2026-09-19：不再限制每条回复的动作数（50 只防失控）
 export const DEFAULT_INTENSITY = 0.5;
 // 各模式的默认时长（毫秒）；long / heartbeat / wave 可由 ms 指定，pulse / double / triple 固定
 export const DEFAULT_MS = { pulse: 200, double: 500, triple: 800, long: 1500, heartbeat: 2700, wave: 3000 };
@@ -20,13 +20,13 @@ export const DEFAULT_MS = { pulse: 200, double: 500, triple: 800, long: 1500, he
 //   minIntervalMs：同一执行器两次触发的缺省最小间隔（执行器自己声明的更大时取更大者）
 //   maxPerReply：每条回复最多执行几个（上限 MAX_PER_REPLY_LIMIT）
 export const PROFILES = {
-  'slow-burn': { floor: 0, defaultMs: { long: 1500, heartbeat: 2700, wave: 3000 }, minIntervalMs: 1500, maxPerReply: 3 },   // 慢热：从轻开始
-  steady: { floor: 0.25, defaultMs: { long: 8000, heartbeat: 8100, wave: 9000 }, minIntervalMs: 1200, maxPerReply: 3 },       // 持久：中等强度、时间长
-  frenzy: { floor: 0.4, defaultMs: { long: 5000, heartbeat: 5400, wave: 6000 }, minIntervalMs: 800, maxPerReply: 5 },         // 狂暴：高触发、高功率
-  max: { floor: 0.8, defaultMs: { long: 10000, heartbeat: 9000, wave: 10000 }, minIntervalMs: 500, maxPerReply: 5 },         // 极限：几乎一直开满
+  'slow-burn': { floor: 0, defaultMs: { long: 1500, heartbeat: 2700, wave: 3000 }, minIntervalMs: 1500, maxPerReply: 50 },   // 慢热：从轻开始
+  steady: { floor: 0.25, defaultMs: { long: 8000, heartbeat: 8100, wave: 9000 }, minIntervalMs: 1200, maxPerReply: 50 },       // 持久：中等强度、时间长
+  frenzy: { floor: 0.4, defaultMs: { long: 5000, heartbeat: 5400, wave: 6000 }, minIntervalMs: 800, maxPerReply: 50 },         // 狂暴：高触发、高功率
+  max: { floor: 0.8, defaultMs: { long: 10000, heartbeat: 9000, wave: 10000 }, minIntervalMs: 500, maxPerReply: 50 },         // 极限：几乎一直开满
 };
 export const DEFAULT_PROFILE = 'slow-burn';
-export const MAX_PER_REPLY_LIMIT = 5;
+export const MAX_PER_REPLY_LIMIT = 50;
 
 // 档位 + 用户覆盖 → 生效的参数（未知档位按 DEFAULT_PROFILE）
 export function resolveSettings(profile, overrides) {
@@ -80,7 +80,7 @@ export function hideBioActs(text) {
   return String(text || '').replace(BIO_ACT_TAG_RE, '');
 }
 
-// 返回 { acts: [...], errors: [...] }；超过上限（缺省 3，opts.maxPerReply 可改，最多 5）的部分丢弃并报错
+// 返回 { acts: [...], errors: [...] }；超过上限（缺省 50，opts.maxPerReply 可改，最多 50）的部分丢弃并报错
 // opts.reasoningMarkers：宿主推理模板的前后缀（见 stripNonActionText）
 export function parseBioActs(text, opts) {
   const limit = opts && Number.isInteger(opts.maxPerReply) ? Math.min(MAX_PER_REPLY_LIMIT, Math.max(0, opts.maxPerReply)) : MAX_PER_REPLY;

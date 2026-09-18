@@ -35,9 +35,338 @@
     "errors": []
   },
   {
-    "name": "超过 3 个",
-    "text": "<bio_act/><bio_act/><bio_act/><bio_act/>",
+    "name": "超过 50 个才丢弃（2026-09-19 起不设实质上限）",
+    "text": "<bio_act/><bio_act/><bio_act/><bio_act/><bio_act/><bio_act/><bio_act/><bio_act/><bio_act/><bio_act/><bio_act/><bio_act/><bio_act/><bio_act/><bio_act/><bio_act/><bio_act/><bio_act/><bio_act/><bio_act/><bio_act/><bio_act/><bio_act/><bio_act/><bio_act/><bio_act/><bio_act/><bio_act/><bio_act/><bio_act/><bio_act/><bio_act/><bio_act/><bio_act/><bio_act/><bio_act/><bio_act/><bio_act/><bio_act/><bio_act/><bio_act/><bio_act/><bio_act/><bio_act/><bio_act/><bio_act/><bio_act/><bio_act/><bio_act/><bio_act/><bio_act/>",
     "acts": [
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "pulse",
+        "intensity": 0.5,
+        "durationMs": null
+      },
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "pulse",
+        "intensity": 0.5,
+        "durationMs": null
+      },
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "pulse",
+        "intensity": 0.5,
+        "durationMs": null
+      },
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "pulse",
+        "intensity": 0.5,
+        "durationMs": null
+      },
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "pulse",
+        "intensity": 0.5,
+        "durationMs": null
+      },
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "pulse",
+        "intensity": 0.5,
+        "durationMs": null
+      },
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "pulse",
+        "intensity": 0.5,
+        "durationMs": null
+      },
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "pulse",
+        "intensity": 0.5,
+        "durationMs": null
+      },
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "pulse",
+        "intensity": 0.5,
+        "durationMs": null
+      },
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "pulse",
+        "intensity": 0.5,
+        "durationMs": null
+      },
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "pulse",
+        "intensity": 0.5,
+        "durationMs": null
+      },
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "pulse",
+        "intensity": 0.5,
+        "durationMs": null
+      },
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "pulse",
+        "intensity": 0.5,
+        "durationMs": null
+      },
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "pulse",
+        "intensity": 0.5,
+        "durationMs": null
+      },
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "pulse",
+        "intensity": 0.5,
+        "durationMs": null
+      },
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "pulse",
+        "intensity": 0.5,
+        "durationMs": null
+      },
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "pulse",
+        "intensity": 0.5,
+        "durationMs": null
+      },
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "pulse",
+        "intensity": 0.5,
+        "durationMs": null
+      },
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "pulse",
+        "intensity": 0.5,
+        "durationMs": null
+      },
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "pulse",
+        "intensity": 0.5,
+        "durationMs": null
+      },
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "pulse",
+        "intensity": 0.5,
+        "durationMs": null
+      },
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "pulse",
+        "intensity": 0.5,
+        "durationMs": null
+      },
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "pulse",
+        "intensity": 0.5,
+        "durationMs": null
+      },
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "pulse",
+        "intensity": 0.5,
+        "durationMs": null
+      },
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "pulse",
+        "intensity": 0.5,
+        "durationMs": null
+      },
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "pulse",
+        "intensity": 0.5,
+        "durationMs": null
+      },
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "pulse",
+        "intensity": 0.5,
+        "durationMs": null
+      },
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "pulse",
+        "intensity": 0.5,
+        "durationMs": null
+      },
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "pulse",
+        "intensity": 0.5,
+        "durationMs": null
+      },
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "pulse",
+        "intensity": 0.5,
+        "durationMs": null
+      },
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "pulse",
+        "intensity": 0.5,
+        "durationMs": null
+      },
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "pulse",
+        "intensity": 0.5,
+        "durationMs": null
+      },
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "pulse",
+        "intensity": 0.5,
+        "durationMs": null
+      },
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "pulse",
+        "intensity": 0.5,
+        "durationMs": null
+      },
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "pulse",
+        "intensity": 0.5,
+        "durationMs": null
+      },
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "pulse",
+        "intensity": 0.5,
+        "durationMs": null
+      },
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "pulse",
+        "intensity": 0.5,
+        "durationMs": null
+      },
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "pulse",
+        "intensity": 0.5,
+        "durationMs": null
+      },
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "pulse",
+        "intensity": 0.5,
+        "durationMs": null
+      },
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "pulse",
+        "intensity": 0.5,
+        "durationMs": null
+      },
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "pulse",
+        "intensity": 0.5,
+        "durationMs": null
+      },
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "pulse",
+        "intensity": 0.5,
+        "durationMs": null
+      },
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "pulse",
+        "intensity": 0.5,
+        "durationMs": null
+      },
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "pulse",
+        "intensity": 0.5,
+        "durationMs": null
+      },
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "pulse",
+        "intensity": 0.5,
+        "durationMs": null
+      },
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "pulse",
+        "intensity": 0.5,
+        "durationMs": null
+      },
+      {
+        "target": "*",
+        "output": "*",
+        "pattern": "pulse",
+        "intensity": 0.5,
+        "durationMs": null
+      },
       {
         "target": "*",
         "output": "*",
