@@ -711,11 +711,9 @@ function checkStream(ctx, l, sparse, lagSec, genLine) {
   if (pieces.length < 3 || !wait.test(pieces[0]) || !bm) { ctx.err(l.line, 'LINE_SYNTAX', `stream 行格式不符：${l.raw}`); return null; }
   const waitSec = durSec(pieces[0].slice(5));
   const bodySec = durSec(pieces[1].slice(5));
-  // §1.2-5：wait = gen 的 ttft + reasoning，body = gen 的 body（都是墙钟；允许 1 秒取整误差）
-  const gp = genLine && /^(?:\d+s|\d+:\d{2}) \(([^()]*)\)/.exec(genLine.body);
-  if (gp) {
-    const g = {};
-    for (const it of gp[1].split(', ')) { const mm = /^(ttft|reasoning|body) (\d+s|\d+:\d{2})$/.exec(it); if (mm) g[mm[1]] = durSec(mm[2]); }
+  // §1.2-5：wait = gen 的 ttft + reasoning，body = gen 的 body（都是墙钟；允许 1 秒取整误差）；wait + body 与 gen 墙钟的对账在 checkLines 末尾
+  const g = genParen(genLine);
+  if (g) {
     if (g.body != null && Math.abs(g.body - bodySec) > 1) ctx.err(l.line, 'STREAM_GEN_MISMATCH', `stream 行的 body ${bodySec}s 与 gen 行括号里的 body ${g.body}s 不一致`);
     if (g.ttft != null && Math.abs(g.ttft + (g.reasoning ?? 0) - waitSec) > 1) ctx.err(l.line, 'STREAM_GEN_MISMATCH', `stream 行的 wait ${waitSec}s 应等于 gen 行的 ttft + reasoning（${g.ttft + (g.reasoning ?? 0)}s）`);
   }
@@ -743,7 +741,16 @@ function checkStream(ctx, l, sparse, lagSec, genLine) {
     if (total !== Number(bm[1]) || n > total || para > paras || para < 1) ctx.err(l.line, 'STREAM_POS_RANGE', `pos 必须满足 已显示 ≤ 总字数（= body 字数），段落号在 1–总段落数之间：${found.pos[0]}`);
   }
   checkDerived(ctx, l, found, hr, bodySec, null);
-  return { pos: Boolean(found.pos) };
+  return { pos: Boolean(found.pos), waitSec, bodySec };
+}
+
+// gen 行括号里的墙钟分项 { ttft, reasoning, body }（秒）；没有括号时 null
+function genParen(genLine) {
+  const gp = genLine && /^(?:\d+s|\d+:\d{2}) \(([^()]*)\)/.exec(genLine.body);
+  if (!gp) return null;
+  const g = {};
+  for (const it of gp[1].split(', ')) { const mm = /^(ttft|reasoning|body) (\d+s|\d+:\d{2})$/.exec(it); if (mm) g[mm[1]] = durSec(mm[2]); }
+  return g;
 }
 
 // v0.4 草案 §8.3
@@ -862,7 +869,7 @@ function checkLines(ctx, lines) {
         if (l.name === 'feedback') checkFeedback(ctx, l);
         if (l.name === 'haptics') checkHaptics(ctx, l);
         if (l.name === 'gates') checkGates(ctx, l);
-        if (l.name === 'stream') { info.stream = l; info.streamPos = checkStream(ctx, l, sparse, lagSec, first.gen)?.pos; }
+        if (l.name === 'stream') { info.stream = l; info.streamInfo = checkStream(ctx, l, sparse, lagSec, first.gen); info.streamPos = info.streamInfo?.pos; }
         if (l.name === 'clean') {
           if (cleans.some((c) => c.phase === l.meta)) err(l.line, 'LINE_DUP', `clean(${l.meta}) 行只能出现一次`);
           const c = checkClean(ctx, l, lagSec);
@@ -923,6 +930,17 @@ function checkLines(ctx, lines) {
     if (hasReply && !('stream' in attrs)) warn(1, 'STREAM_ATTR_MISSING', '本轮有被读的回复，首行应该写 stream="yes|no"（缺省读者按未知处理）');
     if (hasReply && attrs.stream === 'yes' && !info.stream) warn(first.gen.line, 'STREAM_LINE_MISSING', 'stream="yes" 时应该输出 stream 行');
     if (discardedTurn && info.streamPos) err(info.stream.line, 'STREAM_POS_DISCARDED', '换页 / 重新生成时被读的回复已不在上下文里，stream 行不得带 pos');
+    // §6：gen 主体是在场秒，括号分项是墙钟；ttft + reasoning + body = 主体 + away 段 = 墙钟。§1.2-5：stream 的 wait + body 也等于这个墙钟
+    if (hasReply) {
+      const genWall = info.gen.dur + (info.gen.derived?.awaySec ?? 0);
+      const g = genParen(first.gen);
+      if (g && g.ttft != null && g.body != null) {
+        const sum = g.ttft + (g.reasoning ?? 0) + g.body;
+        if (Math.abs(sum - genWall) > 1) err(first.gen.line, 'GEN_PAREN_MISMATCH', `gen 行括号里 ttft + reasoning + body = ${sum}s，应等于主体（在场秒）${info.gen.dur}s + away 段 ${info.gen.derived?.awaySec ?? 0}s = ${genWall}s`);
+      }
+      const si = info.streamInfo;
+      if (si && si.waitSec != null && si.bodySec != null && Math.abs(si.waitSec + si.bodySec - genWall) > 1) err(info.stream.line, 'STREAM_GEN_MISMATCH', `stream 行的 wait + body = ${si.waitSec + si.bodySec}s，应等于 gen 主体 ${info.gen.dur}s + away 段 ${info.gen.derived?.awaySec ?? 0}s = ${genWall}s（墙钟）`);
+    }
     // §2.1：块里有 peak / carryover / tail-max / stream 行时首行必须写 lag
     const needsLag = Boolean(info.stream) || ctx.derived.some((d) => d.hr.peak != null || d.hr.carryover);
     if (needsLag && !('lag' in attrs)) err(1, 'LAG_MISSING', '块里有 peak / carryover / tail-max / stream 行时首行必须写 lag（v0.4 §2.1）');

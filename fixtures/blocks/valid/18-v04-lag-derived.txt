@@ -3,7 +3,7 @@ sent: 21:30:12
 scope: gen, read = previous reply; write, send = this message
 baseline: 66 bpm (rest, n=120; hrv 58 ms) | age 14m | noise ±2
 history: read-peaks 80 · 88 | read-dur 1:40 0:35 2:05 | read-peak-rel +21% · +33%
-gen: 35s (ttft 9s, body 26s) | hr 68→74 [66–78] peak 78 @30s | cov 97% | mean 71 (+8%) | away 12s | tail-max 81 @+3s
+gen: 35s (ttft 9s, body 38s) | hr 68→74 [66–78] peak 78 @30s | cov 97% | mean 71 (+8%) | away 12s | tail-max 81 @+3s
 read: 1:30 | hr 80→84 [72–92] peak 92 @9s | cov 98% | rr-loss 3% | hrv 44 ms | mean 82 (+24%) | above +20% 41s | away 20s
 read-pos: peak ~3% (~30/900 chars, para 1/6) @6 cps cal
 write: 24s, 40 chars, pauses 2, edits 1 | hr 84→78 [76–86] peak 86 @1s carryover | cov 100% | rr-loss 40% | mean 80 (+21%) | above +20% 9s

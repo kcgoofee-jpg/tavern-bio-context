@@ -8,6 +8,6 @@ read: 30s | hr 80→78 [76–84] | cov 96%
 write: n/a (no new message)
 away: none
 send: n/a (no new message)
-stream(lag 8s): wait 8s | body 13s, 600 chars | hr 72→80 [70–84] peak 84 @3s | pos ~200/600 chars, para 2/4 | cov 60%
+stream(lag 8s): wait 8s | body 14s, 600 chars | hr 72→80 [70–84] peak 84 @3s | pos ~200/600 chars, para 2/4 | cov 60%
 note: observable record only; phase edges are page events; hr lags seconds; wrist motion lowers confidence
 </bio_context>

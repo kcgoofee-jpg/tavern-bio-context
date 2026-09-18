@@ -57,7 +57,7 @@ stream-line  = %s"stream(lag " 1*DIGIT %s"s): wait " dur [" (" text ")"]
 2. `pos` 的总字数**必须**等于 `body` 的字数；没有 `peak` 时**不得**输出 `pos`；`peakAt − lag` 落在 `wait` 内（即 `peak` 带 `carryover`）时**不得**输出 `pos`（`STREAM_POS_IN_WAIT`）；稀疏来源不输出 `pos` 与 `peak`。
 3. `stream="yes"` 时：`read` 行照常输出，含义是“回复出完之后到开始写”；**不得**输出 `read-pos`（位置看 `stream` 行）；`read` 行开头 `lag` 秒内的峰值按 §2 标 `carryover`。
 4. 阅读速度校准只用 `stream="no"`、没有 `away` 重叠、没有 `flag` 的轮次。`read-pos` 的 `cal` 速度取整输出。
-5. **与 `gen` 行的关系**：`wait + body` = 发送到 `reply_end` 的墙钟时长。`gen` 行括号里写了 `body Ns` 时，`stream` 行的 `body` 时长**必须**与它相等；写了 `ttft`（和 `reasoning`）时，`wait` **必须**等于 `ttft + reasoning`（没有 `reasoning` 就等于 `ttft`）。各自取整，允许 1 秒误差（`STREAM_GEN_MISMATCH`）。`gen` 行主体的时长是否扣除离开由 §6 定，不据此校验。
+5. **与 `gen` 行的关系**：`wait + body` = 发送到 `reply_end` 的**墙钟**时长 = `gen` 行主体的在场秒 + `gen` 行的 `away` 段（没有这一段就是 0；§6、§4-5）。另外 `gen` 行括号里写了 `body Ns` 时，`stream` 行的 `body` **必须**与它相等；写了 `ttft`（和 `reasoning`）时，`wait` **必须**等于 `ttft + reasoning`（没有 `reasoning` 就等于 `ttft`）。各自取整，允许 1 秒误差（都报 `STREAM_GEN_MISMATCH`）。
 6. `trigger="swipe"` / `"regenerate"`：被读的回复已不在上下文里，`stream` 行可以输出（等待、出字时长与心率仍是事实），但**不得**带 `pos`（与 v0.3 §1.3 不出 `read-pos` 同理；`STREAM_POS_DISCARDED`）。
 7. 段顺序（**应该**）：`pos` → `cov` → `rr-loss` → `hrv` → `mean` → `above` → `act` → `flag`；读者按名字取值，不按顺序拒收。
 8. `stream` 行与 `gen` 行的时间有重叠，这是有意的：`gen` 记录等待，`stream` 记录边出边读。
@@ -193,7 +193,7 @@ peak-part      = %s" peak " 1*DIGIT " @" 1*DIGIT "s" [%s" carryover"]
 2. **百分比写法**：`round(|x − 基线| ÷ 基线 × 100)` 再加符号，0 写 `+0%`，与 `send` 行括号里的百分比同一写法。`mean` 的百分比按**写出的（取整后的）均值**算；校验器允许 1 个百分点的误差（`MEAN_PCT_MISMATCH`）。`read-peak-rel` 按该轮写进 `read-peaks` 的 `peak` 值与该轮的基线算。
 3. **何时写**：`baseline` 行有数值且该行有心率统计时，`mean` **应该**写、`above` **应该**写；`baseline: n/a` 时两者都**不得**写（`DERIVED_WITHOUT_BASELINE`）；`hr n/a` 的行不写。`above` 累计为 0 秒时**整段省略**，不写 `0s`（与 `act`、`off-wrist` 一样，`ABOVE_ZERO`）。
 4. **`above` 的阈值**：≥ 1 的整数百分比，一个块里所有 `above` 段用同一个值（`ABOVE_THRESHOLD_MIXED`）。秒数 = 满足条件的样本覆盖的秒数（按 `cadence`），不要求连续，不得大于该行的时长（`ABOVE_OVER_PHASE`）；有秒数时该行的区间最大值必然高于 `基线 × (1 + 阈值)`（`ABOVE_INCONSISTENT`）。
-5. **`away` 段**：只在 `gen` / `read` / `write` 行；值 = `away` 行里标为该相位、类型为 `hidden` / `unfocused` 的区间时长之和，**包括**因条数限制没写进 `away` 行的区间；`idle`、`offscreen` 不算（它们计入统计）。该相位有被剔除的秒时**应该**写（`AWAY_SEG_MISSING` 警告），没有时省略；写了就不得小于 `away` 行里列出的同相位区间之和（每个区间允许 1 秒取整误差，`AWAY_SEG_MISMATCH`），`away: none` 时不得有这一段。
+5. **`away` 段**：只在 `gen` / `read` / `write` 行；值 = `away` 行里标为该相位、类型为 `hidden` / `unfocused` 的区间时长之和，**包括**因条数限制没写进 `away` 行的区间；`idle`、`offscreen` 不算（它们计入统计）。相位行主体是在场秒（§6），所以 主体 + `away` 段 = 该相位的墙钟时长。该相位有被剔除的秒时**应该**写（`AWAY_SEG_MISSING` 警告），没有时省略；写了就不得小于 `away` 行里列出的同相位区间之和（每个区间允许 1 秒取整误差，`AWAY_SEG_MISMATCH`），`away: none` 时不得有这一段。
 6. **`read-peak-rel`**：个数与顺序和 `read-peaks` 相同（最多 8 轮，按时间顺序，最右是上一轮）；`read-peaks` 是 `·` 的位置这里也是 `·`；该轮有 `peak` 但没有基线时写 `·`；`history: n/a` 时不输出（`HISTORY_REL_COUNT`）。
 7. **段顺序**（**应该**）：`cov` → `rr-loss` → `hrv` → `off-wrist` → `mean` → `above` → `away` → `tail-max` → `act` → `flag`；读者按名字取值，不按顺序拒收（v0.3 §2.3）。
 
@@ -380,6 +380,7 @@ phase          = %s"gen" / %s"read" / %s"write"
 - **覆盖整轮**：离开检测从上一次发送开始，`gen` 里的离开同样按上表处理（v0.3 实现只从回复写完开始算，是缺陷）。
 - **不在就不算**（替换 v0.3 §1.4-6 的“与 away 重叠超过一半不得输出 peak”）：`hidden`、`unfocused` 的秒不属于任何相位的统计。峰值、`cov`、最短相位时长都**只按在场的秒**算；在场秒数够最短相位（§2.4）就照常判峰值，不因为离开得久而整段放弃。例：回复写完时读者不在，10 分钟后回来读了 1 分钟——这 1 分钟照常判峰值。
 - **读回复从读者在场时起算**：`read` 的起点仍是回复写完（相位边界是页面事件，不变），但回复写完后读者第一次在场（页面可见且有焦点）之前的秒记作离开；`read-pos` 的阅读时间从这一刻起算。
+- **`gen` 行主体的时长也是在场秒**（2026-09-18 定，与 `read` 统一）：`gen: 50s (ttft 10s, reasoning 2s, body 48s) | … | away 10s` 里，主体 `50s` 是发送到 `reply_end` 之间在场的秒数；括号里的 `ttft` / `reasoning` / `body` 是页面事件之间的**墙钟**分项，不扣离开；`away` 段（§4-5）是被剔除的秒。三者的关系：`ttft + reasoning + body` = 主体 + `away` 段 = 发送到 `reply_end` 的墙钟时长（各自取整，允许 1 秒误差；`GEN_PAREN_MISMATCH`）。`stream` 行的 `wait + body` 也等于这个墙钟时长（§1.2-5）。`write` 行同理：主体是在场秒，`away` 段是被剔除的秒。
 - **最短时长**：`unfocused`、`offscreen` 短于 5 秒的不记（点一下地址栏、滚动经过旧消息）；`hidden` 不设下限。5 秒是**经验值**。
 - 同一时刻满足多种时按 `hidden` > `unfocused` > `offscreen` > `idle` 取一种，区间不重叠。
 - **写进 v0.3 的块时**（首行 `v="0.3"`）：v0.3 只有 `hidden`、`idle` 两种，按统计处理方式对应——`unfocused` 写成 `hidden`（都不计入），`offscreen` 写成 `idle`（都计入、都不判位置）。统计本身照上表做，不因为块的版本而变。
@@ -605,7 +606,7 @@ v0.3 §5.9-5 的全部条件继续有效，这里写成可检查的形式：
 - v0.3 的全部兼容承诺（v0.3 §7）继续有效。
 - `<bio_act/>` 的直通写法（§9）在 v0.3 解析器里会退回 `pulse`；参考实现 `tools/bio-act.mjs` 只在调用方传入执行器能力（`opts.actuators`）时接受 `pattern="native"`，没传时跳过并记 `NATIVE_NO_CAPS`。
 - 本文件改变数据含义的地方：`read` 在流式时是回看（§1）；相位行的峰值要结合 `carryover` 理解（§2）；基线带年龄与噪声（§3）；执行器重叠与 `clean`（§5）；away 的写法（§6）。旧读者忽略这些新属性、新行、新段时，读到的仍是 v0.3 含义的数据，只是少了新信息。
-- 参考校验器在 `v="0.4"` 时检查：`stream` / `lag` 属性（`lag` 取 1–30 秒；有 `peak` / `carryover` / `tail-max` / `stream` 行时必须有 `lag`；有被读的回复而没写 `stream` 只警告）；`stream` 行（要求 `stream="yes"`、`lag` 一致、`wait` / `body` 与 `gen` 行括号里的 `ttft + reasoning` / `body` 一致、`body` 区间按相位规则判最短时长 / `cov` / `carryover`、`pos` 需要 `peak` 且字数一致、`carryover` 峰值与换页 / 重新生成时不得有 `pos`；`stream="yes"` 没有 `stream` 行只警告）；`carryover` 与 `lag` 的关系（相位行、`clean` 行、`stream` 行）；`tail-max`（需要 `peak` 且高于它、`@+Ns` 在 1–`lag`、不用于 `write`）；相位最短时长 `max(10 s, 2L)`；基线的 `age`、`noise`、`changed`、`manual` 的 `set`；弃用方法名；派生事实（`mean` 在区间内且百分比与基线相符、没有基线不得写 `mean` / `above`、`above` 不写 0 秒、不超过行时长、阈值全块一致、与区间最大值相符、`away` 段与 `away` 行同相位的 `hidden` / `unfocused` 区间之和对账、`read-peak-rel` 与 `read-peaks` 个数一致且 `·` 对齐）；away 相对写法与 `unfocused`；`stream="yes"` 时不得有 `read-pos`；`actuator` 行（执行器 id、段顺序、电量范围、`low` 只在 ≤ 15%、每个执行器一行）；`native` 行（序号升序不重复、括号只用于 `unstoppable, 时长, opt-in`、`haptics off` 时不得出现、每个执行器一行）；`feedback` 备注里的 `native-unstoppable`；相位行与 `stream` 行的 `act` 段（秒数不得大于相位时长、`mean` 在 1–100、条数与单复数一致、不得写 0、括号里只能是登记过的风险输出）；`clean` 行（括号里是 `gen` / `read` / `write`、每个相位一行、必须有 `sec N/M`、M 等于相位时长、N 不得大于相位时长减去 `act` 秒数、N ≥ `max(10 s, 2L)` 且 ≥ 30%、峰值时刻不超出相位、`carryover` 与 `lag` 的关系、对应相位行必须有 `act` 段）；来自执行器的 `pressure` 等信号行（数值必须带 `+` / `-`，不得写物理单位）。样例：`fixtures/blocks/valid/13-v04-actuator-native.txt`、`14-v04-act-clean.txt`、`fixtures/blocks/invalid/20-v04-actuator-native.txt`、`21-v03-native-unstoppable.txt`、`22-v04-act-clean.txt`。
+- 参考校验器在 `v="0.4"` 时检查：`stream` / `lag` 属性（`lag` 取 1–30 秒；有 `peak` / `carryover` / `tail-max` / `stream` 行时必须有 `lag`；有被读的回复而没写 `stream` 只警告）；`stream` 行（要求 `stream="yes"`、`lag` 一致、`wait` / `body` 与 `gen` 行括号里的 `ttft + reasoning` / `body` 一致、`wait + body` = `gen` 主体 + `away` 段、`body` 区间按相位规则判最短时长 / `cov` / `carryover`、`pos` 需要 `peak` 且字数一致、`carryover` 峰值与换页 / 重新生成时不得有 `pos`；`stream="yes"` 没有 `stream` 行只警告）；`carryover` 与 `lag` 的关系（相位行、`clean` 行、`stream` 行）；`tail-max`（需要 `peak` 且高于它、`@+Ns` 在 1–`lag`、不用于 `write`）；相位最短时长 `max(10 s, 2L)`；基线的 `age`、`noise`、`changed`、`manual` 的 `set`；弃用方法名；派生事实（`mean` 在区间内且百分比与基线相符、没有基线不得写 `mean` / `above`、`above` 不写 0 秒、不超过行时长、阈值全块一致、与区间最大值相符、`away` 段与 `away` 行同相位的 `hidden` / `unfocused` 区间之和对账、`read-peak-rel` 与 `read-peaks` 个数一致且 `·` 对齐）；`gen` 行括号分项之和 = 主体 + `away` 段（§6）；away 相对写法与 `unfocused`；`stream="yes"` 时不得有 `read-pos`；`actuator` 行（执行器 id、段顺序、电量范围、`low` 只在 ≤ 15%、每个执行器一行）；`native` 行（序号升序不重复、括号只用于 `unstoppable, 时长, opt-in`、`haptics off` 时不得出现、每个执行器一行）；`feedback` 备注里的 `native-unstoppable`；相位行与 `stream` 行的 `act` 段（秒数不得大于相位时长、`mean` 在 1–100、条数与单复数一致、不得写 0、括号里只能是登记过的风险输出）；`clean` 行（括号里是 `gen` / `read` / `write`、每个相位一行、必须有 `sec N/M`、M 等于相位时长、N 不得大于相位时长减去 `act` 秒数、N ≥ `max(10 s, 2L)` 且 ≥ 30%、峰值时刻不超出相位、`carryover` 与 `lag` 的关系、对应相位行必须有 `act` 段）；来自执行器的 `pressure` 等信号行（数值必须带 `+` / `-`，不得写物理单位）。样例：`fixtures/blocks/valid/13-v04-actuator-native.txt`、`14-v04-act-clean.txt`、`fixtures/blocks/invalid/20-v04-actuator-native.txt`、`21-v03-native-unstoppable.txt`、`22-v04-act-clean.txt`。
 
 ## 11. 待定（本草案没有采纳，留待讨论）
 
@@ -622,8 +623,9 @@ v0.3 §5.9-5 的全部条件继续有效，这里写成可检查的形式：
 - **`clean` 的两个阈值**（干净秒 ≥ `max(10 s, 2L)`、≥ 相位时长的 30%）是**经验值**，要按真机数据调；干净秒不连续时统计怎样合并最合适，也待实测。
 - **`act` 的强度取法**：多个执行器同一秒时取最大值（§5.1-3），也可以取和或取主执行器，待真机体验后定。
 - **`stream` 行的 `clean` 统计**：`stream` 行目前只支持 `act` 段，不支持 `clean`（`body` 区间与相位不一一对应），要不要补待定。
-- **`mean` / `above` 是否改为“必须”**（2026-09-18 可实现性检查）：现在是“有基线时应该写”，校验器不查缺失；定稿时若改成必须，读法就可以依赖它们总在。定稿前决定。
-- **`gen` 行主体的时长是否扣除离开**（§6 与 §1.2-5、§4-5 的接口）：`read` 行按在场秒写时长，`gen` 行的写法没有明说；`stream` 行的 `wait` / `body` 定为墙钟，校验器只与 `gen` 括号里的分项对账，不与主体时长对账。§6 定下来后再补校验。
+- ~~**`mean` / `above` 是否改为“必须”**~~（2026-09-18 已定）：草案期保持“有基线时**应该**写”，校验器不查缺失；**定稿时改为必须**，读法届时可以依赖它们总在。
+- ~~**`gen` 行主体的时长是否扣除离开**~~（2026-09-18 已定）：`gen` 主体改为在场秒，与 `read` 统一；括号分项与 `stream` 行的 `wait` / `body` 仍是墙钟，`主体 + away 段 = 墙钟` 的关系写在 §6，校验器按 §1.2-5、§6 对账。
+- ~~**实现方案里 `above` 的定义**~~（2026-09-18 已定）：按本文件 §4（相对基线的百分比阈值，缺省 20%），不是“基线 + noise”；`noise` 只管读法里“有起伏”那一档（§4.1）。
 - **设备确认执行的时间**：现在只能记生产者发出的时间（§5.1-1）。将来有设备能回报“已执行 / 已停止”时，是否另加一个更可信的口径，待定。
 
 ## 12. `gates` 行：本轮用了哪些门槛（2026-09-18 新增）

@@ -188,6 +188,7 @@
   "24-v04-lag-derived-bad.txt": {
     "errors": [
       "LAG_MISSING",
+      "GEN_PAREN_MISMATCH",
       "HISTORY_REL_COUNT",
       "MEAN_OUT_OF_RANGE",
       "MEAN_PCT_MISMATCH",
