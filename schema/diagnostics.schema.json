@@ -224,6 +224,10 @@
               "BAD_INPUT",
               "BLOCK_INVALID",
               "GUIDE_CONFLICT",
+              "TOY_STOP_FAILED",
+              "TOY_MAYBE_RUNNING",
+              "TOY_EXCLUSIVE_BUSY",
+              "TOY_HANDSHAKE_TIMEOUT",
               "MULTI_PRODUCER",
               "SCAN_COLLISION"
             ]

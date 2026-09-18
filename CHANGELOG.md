@@ -74,6 +74,7 @@
 - 日级行 `sleep` / `day` / `workout` / `trend`，事件与设备行 `wear` / `button` / `motion` / `sensor`，L2 敏感行 `body` / `cycle` / `journal`；尾部 `warn:` 行登记。
 - 敏感分级 L0 / L1 / L2；`bio.daily`、`bio.sensor`、`bio.sensitive`；总线 `setDaily` / `getDaily` / `setExposure` 与新 kind。
 - 输出接口：`registerActuator(id, caps, handler)` / `actuate` / `stop` / `actuators`、`<bio_act/>`（`intensity`、`ms` 属性）；强度帧 `patternFrames()`；模式 `wave`；执行器 `minIntervalMs`、`levels`、`via`；用户强度上限；Intiface / buttplug v4（回退 v3）适配说明。参考实现 `tools/bio-act.mjs`，Schema `bio-act`、`actuator`。
+- `feedback` 的 `reason` 增加 `stop-failed`、`maybe-running`（v0.4 §7.5）；诊断代码增加 `TOY_STOP_FAILED` / `TOY_MAYBE_RUNNING` / `TOY_EXCLUSIVE_BUSY` / `TOY_HANDSHAKE_TIMEOUT`。
 - `actuate` / `stop` 结果新增 `refused: 'stop-failed'`（停止重试仍失败，§5.9-9）。
 - 设备层（§5.9）：自带模式默认须能被强度 0 立即停下；停不下来的自带模式可在 `stoppable: false` + 已知时长 + 非风险输出 + 用户逐台开启的条件下登记，运行期间持续提示；执行器能力 `exclusive`（独占连接）、`stopsOnDisconnect`（断线是否确定自停，缺省 false，断线期间显示“可能仍在动”、重连先停）；全部停止越过排队、逐输出停止并等应答。
 - 设备反馈输入（玩具 → 剧情，§5.12）：`tbc.feedback()` / `bio:feedback` / `feedbackLog()`，块内 `feedback` 行（L0），`bio.feedback`，`replyActs()` 记录可带 `feedback`；Schema `feedback`。

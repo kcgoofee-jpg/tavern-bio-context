@@ -272,6 +272,19 @@ link-seg       = %s"link " ( %s"ok" / %s"reconnecting" / %s"lost" )
 
 **兼容**：`actuator` 是新行名，v0.3 读者按未知行忽略；v0.3 校验器只给 `LINE_UNKNOWN` 警告。
 
+### 7.5 停止失败与断线后状态未知（2026-09-19 新增）
+
+`feedback` 事件与行的 `reason` 增加两个值（§5.12）：
+
+| 值 | 含义 | 何时写 |
+|---|---|---|
+| `stop-failed` | 停止指令重试后设备仍没有应答（v0.3 §5.9-9，`actuate` 返回 `refused: 'stop-failed'`） | 由实现写，`from: 'device'` |
+| `maybe-running` | 设备断线且 `stopsOnDisconnect` 为假，实现不知道它停没停（v0.3 §5.9-8） | 断线时写一次；重连发完停止后不再写 |
+
+两种情况实现都**必须**在界面上继续显示“可能仍在动”，并在 `outputState()` 里如实反映；**不得**据此推断设备实际状态。
+
+诊断问题代码同时登记：`TOY_STOP_FAILED`、`TOY_MAYBE_RUNNING`、`TOY_EXCLUSIVE_BUSY`、`TOY_HANDSHAKE_TIMEOUT`（conformance-zh.md §4.4）。
+
 ## 8. 设备自带模式直通：`pattern="native"`
 
 **问题**：很多玩具的卖点是自带模式（波浪、脉冲、随机……），用强度帧模拟不出来；v0.3 §5.9-5 只允许把**抽象模式**映射到自带模式，模型没法点名“用设备的第 3 个模式”。
