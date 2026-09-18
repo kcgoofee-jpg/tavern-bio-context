@@ -176,5 +176,13 @@
       "TOY_SENSOR_UNIT"
     ],
     "reader": "ok"
+  },
+  "23-v04-gates-tuned-bad.txt": {
+    "errors": [
+      "HAPTICS_TUNED",
+      "GATES_RANGE",
+      "GATES_SYNTAX"
+    ],
+    "reader": "ok"
   }
 }

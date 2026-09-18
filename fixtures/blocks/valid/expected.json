@@ -26,5 +26,14 @@
   },
   "15-v04-away-types.txt": {
     "warnings": []
+  },
+  "16-v04-gates-tuned.txt": {
+    "warnings": []
+  },
+  "17-v03-tuned-gates-tolerated.txt": {
+    "warnings": [
+      "SEG_UNKNOWN",
+      "LINE_UNKNOWN"
+    ]
   }
 }

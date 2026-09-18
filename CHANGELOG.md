@@ -25,6 +25,11 @@
 - 设备自带模式直通（§9）：`nativePatterns` 可写成列表（`id`、`name`、`outputs`、`levels`、`stoppable`、`maxDurationMs`、`map`），序号 = 位置；`<bio_act pattern="native" mode="序号|名字"/>`；扩展行 `native(<执行器 id>): 1 波浪 | 3 失控 (unstoppable, 60s, opt-in)`，只列用户开启的模式，`haptics off` 时不出现；档位与频率照常约束；找不到模式时跳过（不退回 `pulse`）；停不下来的模式的护栏写成可检查条目，停止后仍在运行时 `feedback` 备注与事件 `reason` 写 `native-unstoppable`；`outputState()` 增加 `nativeRunning`。
 - 参考实现：`tools/bio-act.mjs` 新增 `NATIVE_PATTERN`、`resolveNative()`，`parseBioActs(text, { actuators })` 解析 `mode`，没传执行器列表时直通动作跳过（`NATIVE_NO_CAPS`）；错误代码 `NATIVE_NO_MODE`、`NATIVE_UNAVAILABLE`、`NATIVE_OFF`、`NATIVE_TARGET_AMBIGUOUS`、`MODE_IGNORED`。`tools/block.mjs` 在 `v="0.4"` 时检查 `actuator` / `native` 行与 `native-unstoppable` 备注（`ACTUATOR_*`、`NATIVE_*`），以及 `act` 段、`clean` 行、来自执行器的传感器行（`ACT_*`、`CLEAN_*`、`TOY_SENSOR_*`）。Schema：`actuator` 的 `nativePatterns` 列表写法，`bio-act` 的 `pattern: native` 与 `mode`，`feedback` 的 `reason: native-unstoppable`。样例 `blocks/valid/13`、`14`，`blocks/invalid/20`、`21`、`22`，以及 `bio-act` 与 JSON 样例（`bio-variable.v04-phases`）。
 
+### Added（草案，2026-09-18 晚）
+- §12 `gates(…)` 行：本轮用了哪些门槛（`idle` / `too-long` / `pause`）、值与来源（`est` / `cal n=N` / `user`，可加 `frozen`）；登记表写明缺省值与允许范围；自适应只能由行为时长算出；v0.3 块也可输出（读者忽略）。
+- §13 `haptics` 行的 `tuned` 段：用户改过档位参数时只列改过的（`floor`、`long` / `heartbeat` / `wave`、`gap`、`per-reply`），模型看到的档位名与实际执行对得上。
+- 校验器：`GATES_SYNTAX`、`GATES_RANGE`、`HAPTICS_TUNED`；修正 `haptics` 行整行匹配、主体后多写一段就报错的问题（v0.3 §2.3-2 本来允许任意段，现只给 `SEG_UNKNOWN` 警告）。样例 `blocks/valid/16`、`17`，`blocks/invalid/23`。
+
 ### Changed（草案，2026-09-18 晚）
 - §6：`idle` 只从有内容可读时开始判（流式从首字、非流式从回复写完）；新内容出现和读者操作一样重新开始计时。等首字时坐着不动不再算离开。
 

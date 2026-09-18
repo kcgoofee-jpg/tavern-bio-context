@@ -64,7 +64,8 @@ export const EXTENSION_LINES = {
   body: { level: 'L2', since: '0.3', date: 'plain' }, cycle: { level: 'L2', since: '0.3', date: 'plain' },
   journal: { level: 'L2', since: '0.3', date: 'plain' },
   // v0.3 §5.8：触觉输出的当前状态
-  haptics: { level: 'L0', since: '0.3', body: /^(?:off|on \| cap \d{1,3}% \| profile (?:slow-burn|steady|frenzy|max)(?: \| actuators \d+)?)$/ },
+  //   主体之后可以有任意段（v0.3 §2.3-2）；v0.4 §13 登记 tuned 段（语法见 checkHaptics）
+  haptics: { level: 'L0', since: '0.3' },
   // v0.3 §5.12：读者对设备的操作与上一条回复动作的执行结果（语法见 checkFeedback）
   feedback: { level: 'L0', since: '0.3' },
   // v0.4 草案 §1：流式显示段
@@ -74,6 +75,8 @@ export const EXTENSION_LINES = {
   // v0.4 草案 §8：执行器的电量与连接；§9：用户开启了的设备自带模式
   actuator: { level: 'L0', since: '0.4', named: true, perActuator: true },
   native: { level: 'L0', since: '0.4', named: true, perActuator: true },
+  // v0.4 草案 §12：本轮用了哪些门槛（语法见 checkGates）
+  gates: { level: 'L0', since: '0.4' },
 };
 
 export const KIND_SINCE = {
@@ -546,6 +549,56 @@ function checkAway(ctx, l) {
   if (abs && ctx.at('0.4')) ctx.warn(l.line, 'AWAY_ABSOLUTE', 'v0.4 起 away 应写相对 sent 的偏移（绝对时刻写法 1.0 移除）');
 }
 
+// v0.3 §5.8 haptics 行的主体 + v0.4 §13 tuned 段（只列改过的参数）
+const HAPTICS_HEAD = /^(?:off|on \| cap \d{1,3}% \| profile (?:slow-burn|steady|frenzy|max)(?: \| actuators \d+)?)(?= \| |$)/;
+const TUNED_ITEMS = {
+  floor: { re: /^floor (\d{1,3})%$/, ok: (m) => Number(m[1]) <= 95 },
+  long: { re: /^long (\d{1,3}(?:\.\d)?)s$/, ok: (m) => Number(m[1]) >= 1 && Number(m[1]) <= 60 },
+  heartbeat: { re: /^heartbeat (\d{1,3}(?:\.\d)?)s$/, ok: (m) => Number(m[1]) >= 1 && Number(m[1]) <= 60 },
+  wave: { re: /^wave (\d{1,3}(?:\.\d)?)s$/, ok: (m) => Number(m[1]) >= 1 && Number(m[1]) <= 60 },
+  gap: { re: /^gap (\d{1,3}(?:\.\d)?)s$/, ok: (m) => Number(m[1]) >= 0.2 && Number(m[1]) <= 10 },
+  'per-reply': { re: /^per-reply ([1-5])$/, ok: () => true },
+};
+function checkHaptics(ctx, l) {
+  const head = HAPTICS_HEAD.exec(l.body);
+  if (!head) { ctx.err(l.line, 'LINE_SYNTAX', `haptics 行格式不符：${l.raw}`); return; }
+  const rest = l.body.slice(head[0].length);
+  if (!rest) return;
+  for (const seg of rest.slice(3).split(' | ')) {
+    if (!seg.startsWith('tuned ')) { ctx.warn(l.line, 'SEG_UNKNOWN', `haptics 行里未登记的段（读者会忽略）：${seg}`); continue; }
+    if (!ctx.at('0.4')) { ctx.warn(l.line, 'SEG_UNKNOWN', 'tuned 段是 v0.4 草案 §13 登记的（v0.3 读者会忽略）'); continue; }
+    if (l.body.startsWith('off')) ctx.err(l.line, 'HAPTICS_TUNED', 'haptics 是 off 时不写 tuned 段');
+    const seen = new Set();
+    for (const item of seg.slice(6).split(', ')) {
+      const key = item.split(' ')[0];
+      const def = TUNED_ITEMS[key];
+      const m = def && def.re.exec(item);
+      if (!m) { ctx.err(l.line, 'HAPTICS_TUNED', `tuned 段里的参数不符：${item}`); continue; }
+      if (!def.ok(m)) ctx.err(l.line, 'HAPTICS_TUNED', `tuned 段的 ${key} 超出范围：${item}`);
+      if (seen.has(key)) ctx.err(l.line, 'HAPTICS_TUNED', `tuned 段的 ${key} 重复`);
+      seen.add(key);
+    }
+  }
+}
+
+// v0.4 §12 gates 行：门槛名、时长、来源；值在允许范围里
+const GATE_RANGE = { idle: [60, 300], 'too-long': [180, 1800], pause: [3, 20] };
+function checkGates(ctx, l) {
+  const segs = l.body.split(' | ');
+  if (segs[segs.length - 1] === 'frozen') segs.pop();
+  if (!segs.length) { ctx.err(l.line, 'GATES_SYNTAX', 'gates 行至少写一个门槛'); return; }
+  const seen = new Set();
+  for (const seg of segs) {
+    const m = /^(idle|too-long|pause) ((?:\d+s|\d+:\d{2})) \((est|cal n=\d+|user)\)$/.exec(seg);
+    if (!m) { ctx.err(l.line, 'GATES_SYNTAX', `gates 行的门槛格式不符：${seg}`); continue; }
+    if (seen.has(m[1])) ctx.err(l.line, 'GATES_SYNTAX', `gates 行的 ${m[1]} 重复`);
+    seen.add(m[1]);
+    const sec = durSec(m[2]);
+    const [lo, hi] = GATE_RANGE[m[1]];
+    if (sec < lo || sec > hi) ctx.err(l.line, 'GATES_RANGE', `${m[1]} ${m[2]} 超出允许范围（${lo}–${hi} 秒）`);
+  }
+}
+
 function checkFeedback(ctx, l) {
   const segs = l.body.split(' | ');
   let events = 0;
@@ -717,6 +770,8 @@ function checkLines(ctx, lines) {
         if (reg.body && !reg.body.test(l.body)) err(l.line, 'LINE_SYNTAX', `${l.name} 行格式不符：${l.raw}`);
         if (reg.date) checkLineDate(ctx, l, reg.date);
         if (l.name === 'feedback') checkFeedback(ctx, l);
+        if (l.name === 'haptics') checkHaptics(ctx, l);
+        if (l.name === 'gates') checkGates(ctx, l);
         if (l.name === 'stream') { info.stream = l; checkStream(ctx, l, sparse, lagSec); }
         if (l.name === 'clean') {
           if (cleans.some((c) => c.phase === l.meta)) err(l.line, 'LINE_DUP', `clean(${l.meta}) 行只能出现一次`);
