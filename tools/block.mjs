@@ -526,14 +526,14 @@ function checkAway(ctx, l) {
   const pieces = l.body.split(' | ');
   checkSegs(ctx, l, pieces.slice(1), []);
   if (pieces[0] === 'none') return;
-  const absRe = new RegExp(`^${CLOCK}–${CLOCK} (hidden|idle|unfocused)(?: \\[\\d+–\\d+\\])?$`);
-  const relRe = /^-(\d+):(\d{2})\.\.-(\d+):(\d{2}) (hidden|idle|unfocused) \((gen|read|write)\)(?: \[\d+–\d+\])?$/;
+  const absRe = new RegExp(`^${CLOCK}–${CLOCK} (hidden|idle|unfocused|offscreen)(?: \\[\\d+–\\d+\\])?$`);
+  const relRe = /^-(\d+):(\d{2})\.\.-(\d+):(\d{2}) (hidden|idle|unfocused|offscreen) \((gen|read|write)\)(?: \[\d+–\d+\])?$/;
   let abs = false;
   for (const span of pieces[0].split('; ')) {
     let m;
     if ((m = absRe.exec(span))) {
       abs = true;
-      if (m[1] === 'unfocused' && !ctx.at('0.4')) ctx.err(l.line, 'LINE_SYNTAX', `unfocused 是 v0.4 的类型：${span}`);
+      if ((m[1] === 'unfocused' || m[1] === 'offscreen') && !ctx.at('0.4')) ctx.err(l.line, 'LINE_SYNTAX', `${m[1]} 是 v0.4 的类型：${span}`);
     } else if ((m = relRe.exec(span))) {
       if (!ctx.at('0.4')) { ctx.err(l.line, 'LINE_SYNTAX', `相对 sent 的 away 写法是 v0.4 的：${span}`); continue; }
       const from = Number(m[1]) * 60 + Number(m[2]);

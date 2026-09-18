@@ -330,11 +330,23 @@ away-line      = %s"away: " ( %s"none" / away-span *("; " away-span) )
 away-span      = rel ".." rel SP away-type SP "(" phase ")" [SP range]
                / clock "–" clock SP away-type [SP range]          ; 旧写法，1.0 移除
 rel            = "-" 1*DIGIT ":" 2DIGIT                             ; 相对 sent 的偏移，起点早于终点
-away-type      = %s"hidden" / %s"idle" / %s"unfocused"
+away-type      = %s"hidden" / %s"idle" / %s"unfocused" / %s"offscreen"
 phase          = %s"gen" / %s"read" / %s"write"
 ```
 
-- 新类型 `unfocused`：窗口失去焦点但页面仍可见。
+| 类型 | 含义（生产者怎么判） | 统计 |
+|---|---|---|
+| `hidden` | 页面不可见：换标签页、最小化、锁屏；浏览器判定整个窗口被别的程序挡住时也算（Chrome 的原生遮挡检测会把页面置为隐藏） | **不计入**相位统计与时长 |
+| `unfocused` | 页面仍可见，但窗口失去焦点：切到别的程序、多屏时在另一块屏上操作（`window` 的 `blur` / `focus`，`document.hasFocus()`） | **不计入** |
+| `idle` | 一段时间没有任何操作（鼠标、滚动、按键、触摸） | 计入；与之重叠时不输出 `read-pos` / 位置 |
+| `offscreen` | 最新一条回复**整条**不在聊天区的可视范围里（读者翻上去看旧消息）；只在 `gen`（流式出字时）与 `read` 里判 | 计入；与之重叠时不输出 `read-pos` / 位置，峰值落在其中时不得换算成最新回复里的位置 |
+
+- 新类型 `unfocused`、`offscreen`（2026-09-19 新增，用户实测追问：窗口切换、翻看旧消息都看不到；依据 `references/research/2026-09-19-browser-attention-signals.md`）。
+- **覆盖整轮**：离开检测从上一次发送开始，`gen` 里的离开同样按上表处理（v0.3 实现只从回复写完开始算，是缺陷）。
+- **最短时长**：`unfocused`、`offscreen` 短于 5 秒的不记（点一下地址栏、滚动经过旧消息）；`hidden` 不设下限。5 秒是**经验值**。
+- 同一时刻满足多种时按 `hidden` > `unfocused` > `offscreen` > `idle` 取一种，区间不重叠。
+- **写进 v0.3 的块时**（首行 `v="0.3"`）：v0.3 只有 `hidden`、`idle` 两种，按统计处理方式对应——`unfocused` 写成 `hidden`（都不计入），`offscreen` 写成 `idle`（都计入、都不判位置）。统计本身照上表做，不因为块的版本而变。
+- 可选的系统级空闲（浏览器 Idle Detection 接口，要用户授权）判出的空闲仍写 `idle`；锁屏写 `hidden`。
 - 每段必须写落在哪个相位。
 - 空闲判定阈值应该随预计阅读时长伸缩（长回复的阅读期间不应该很快被判成 `idle`）；具体函数由实现决定。
 - 旧的绝对时刻写法在 v0.4 里仍可读，生产者应该改用新写法（校验器给警告）。
