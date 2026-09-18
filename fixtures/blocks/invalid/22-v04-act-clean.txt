@@ -1,0 +1,19 @@
+<bio_context v="0.4" mode="author" view="backstage" source="heartlink" cadence="1s" trigger="normal" stream="no" lag="6s">
+sent: 22:40:10
+scope: gen, read = previous reply; write, send = this message
+baseline: 66 bpm (rest, n=120) | age 8m | noise ±3
+history: n/a
+gen: 30s | hr 70→74 [69–76] | cov 97% | act 40s, mean 0%, 1 acts
+read: 1:00 | hr 72→86 [70–90] peak 90 @44s | cov 96% | act 12s, mean 62%, 3 acts (Buzz)
+write: 20s, 31 chars, pauses 1, edits 0 | hr 84→80 [79–85] | cov 100% | act 0s, mean 30%, 0 acts
+away: none
+send: 80 bpm (+21%)
+haptics(heartlink): on | cap 80% | profile steady | actuators 2
+actuator(intiface:0:1): battery 62% | charging no | link ok
+clean(gen): hr 70→74 [69–76] | sec 20/25
+clean(read): hr 74→78 [72–80] peak 80 @31s | sec 14/60 | cov 91%
+clean(write): hr 84→80 [79–85] peak 85 @25s | sec 11/20
+clean(send): hr 70→72 [69–74] | sec 20/30
+pressure(intiface:0:1, 100ms): read 7.9→12.3 kPa peak 14.1 @22s
+note: observable record only; phase edges are page events; hr lags seconds; wrist motion lowers confidence
+</bio_context>

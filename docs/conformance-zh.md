@@ -92,6 +92,7 @@
 | `feedback`（读者对设备的操作与上一条回复动作的执行结果，§5.12） | L0 | 0.3 |
 | 与 kind 同名的信号行（如 `pressure(...)`；`ppg` 除外） | 视信号 | 0.2 |
 | `stream`（流式显示段） | L1 | 0.4 草案 |
+| `clean`（只统计没有执行器驱动的那些秒：`clean(gen\|read\|write): hr … \| sec N/M`，每个相位一行） | L1 | 0.4 草案 |
 | `actuator`（执行器电量与连接，每个执行器一行，≤ 4 行） | L0 | 0.4 草案 |
 | `native`（用户开启的设备自带模式，每个执行器一行） | L0 | 0.4 草案 |
 
@@ -114,10 +115,12 @@
 |---|---|---|
 | `gen` / `read` / `write` | `cov`、`rr-loss`、`hrv`、`flag:`（值：`too-long`、`hr-high`）、`off-wrist` | 0.1–0.3 |
 | `gen` / `read` / `write` | `mean`、`above`、`away`、`tail-max`；峰值后缀 `carryover` | 0.4 草案 |
+| `gen` / `read` / `write`、`stream` | `act N s, mean N%, N act(s)[ (Temperature\|Estim\|Spray)]`（本相位内执行器运行的秒数、强度与条数，算生产者发出的动作） | 0.4 草案 |
 | `history` | `read-dur`、`hrv` | 0.1 |
 | `history` | `read-peak-rel` | 0.4 草案 |
 | `baseline` | `age`、`noise`、`changed` | 0.4 草案 |
 | `stream` | `pos`，以及相位行的 `cov`、`rr-loss`、`hrv`、`flag:`、`mean`、`above` | 0.4 草案 |
+| `clean` | `sec N/M`（必须），以及相位行的 `cov`、`rr-loss`、`hrv`、`mean`、`above` | 0.4 草案 |
 | `actuator` | `battery`（`N%`、可带 `low`，或 `n/a`）、`charging`、`link` | 0.4 草案 |
 | `feedback` | 备注 `native-unstoppable`（只用于 `stop by …`） | 0.4 草案 |
 
@@ -134,6 +137,8 @@
 `hr` `rr` `pressure` `temperature` `room_temperature` `humidity` `spo2` `stress` `button` `battery`（0.2）；`wear` `motion` `skin_temperature` `resp_rate` `posture` `charging` `ppg`（0.3）。`ppg` 与未登记且不带 `x_` 的 kind 不进块。
 
 标识类字段（`kind`、`source`、`unit`、`target`、`prior.source`、执行器 id）：`^[a-z0-9][a-z0-9._:-]{0,31}$`（v0.3 §4.4）。
+
+来自执行器的传感器输入（`pressure`、`button` 等，v0.4 草案 §5.6）：`<kind>(…)` 括号里的第一项写**执行器 id**，`unit` 写 `raw`，块里只写带 `+` / `-` 的相对变化，不得换算成物理单位，也不得与 `sensor(…)` 描述的信号源设备混同。
 
 ### 4.7 诊断问题代码（`tbc.diagnostics().problems[].code`，0.3）
 
@@ -170,7 +175,7 @@
 | `SCOPE_TRIGGER`、`REPLAY_MISSING`、`SWIPE_NEW_MESSAGE`、`IMPERSONATE_WRITE`、`READPOS_FORBIDDEN`、`READPOS_WITHOUT_PEAK` | v0.3 §1.3 | 警告 |
 | `HR_RANGE`、`PEAK_OUT_OF_RANGE`、`PEAK_LOW_COVERAGE`、`PEAK_SHORT_PHASE`、`HRV_SHORT_WINDOW`、`HRV_QUALITY`、`SPARSE_FIELD` | v0.3 §1.4、§2.8 | 警告 |
 | `FEEDBACK_COUNT`、`FEEDBACK_SEND_AT`、`FEEDBACK_TOO_MANY` | v0.3 §5.12 | 警告 |
-| `BASELINE_METHOD_DEPRECATED`、`BASELINE_AGE_MISSING`、`BASELINE_MANUAL_INFO`、`CARRYOVER_*`、`TAILMAX_*`、`STREAM_*`、`ACTUATOR_*`、`NATIVE_*` | v0.4 草案 | 警告 |
+| `BASELINE_METHOD_DEPRECATED`、`BASELINE_AGE_MISSING`、`BASELINE_MANUAL_INFO`、`CARRYOVER_*`、`TAILMAX_*`、`STREAM_*`、`ACT_*`、`CLEAN_*`、`TOY_SENSOR_*`、`ACTUATOR_*`、`NATIVE_*` | v0.4 草案 | 警告 |
 
 只给警告的代码：`HEADER_UNKNOWN`、`VIEW_MISSING`、`SCOPE_MISSING`、`LINE_UNKNOWN`、`LINE_IN_FIXED_ZONE`、`LINE_ORDER_UNKNOWN`、`SEG_UNKNOWN`、`FLAG_UNKNOWN`、`DATE_SHORT`、`CPS_NOT_INTEGER`、`FEEDBACK_REF_LEGACY`、`HRV_IN_WRITE`、`AWAY_ABSOLUTE`，以及 v0.3 里的 `BASELINE_METHOD_DEPRECATED`。
 

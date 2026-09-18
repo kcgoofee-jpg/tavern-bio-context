@@ -8,7 +8,7 @@
 
 | 项 | 当前 |
 |---|---|
-| 规范 | v0.2 定稿候选（[`docs/spec-v0.2-zh.md`](docs/spec-v0.2-zh.md)）；v0.3 定稿候选（[`docs/spec-v0.3-draft-zh.md`](docs/spec-v0.3-draft-zh.md)）；v0.4 草案（[`docs/spec-v0.4-draft-zh.md`](docs/spec-v0.4-draft-zh.md)：流式、心率滞后、基线年龄与噪声、派生事实、执行器电量与连接、设备自带模式直通） |
+| 规范 | v0.2 定稿候选（[`docs/spec-v0.2-zh.md`](docs/spec-v0.2-zh.md)）；v0.3 定稿候选（[`docs/spec-v0.3-draft-zh.md`](docs/spec-v0.3-draft-zh.md)）；v0.4 草案（[`docs/spec-v0.4-draft-zh.md`](docs/spec-v0.4-draft-zh.md)：流式、心率滞后、基线年龄与噪声、派生事实、执行器与相位的重叠、执行器电量与连接、设备自带模式直通） |
 | 规范用语与一致性 | [`docs/conformance-zh.md`](docs/conformance-zh.md)（必须 / 应该 / 可以；一致性角色；版本策略；登记表） |
 | 机器可读定义 | [`schema/`](schema)：注入块 ABNF、聊天变量、卡片声明、诊断、触觉动作、执行器能力 |
 | 校验 | `npm install && npm test`；单独校验一个块：`node tools/validate.mjs 块.txt`（生产者档），`--reader`（读者档） |
@@ -163,6 +163,7 @@ note: observable record only; phase edges are page events; hr lags seconds; wris
 - 只读状态给角色助手、卡片脚本、美化用：`tbc.outputState()`（开关、强度上限、当前档位、执行器数）、`tbc.replyActs()`（最近的回复动作执行记录），以及对应事件 `bio:output-state`、`bio:reply-acts`；它们只能读这组公开接口，不得读某个实现的内部状态。
 - **反方向：玩具 → 剧情**（§5.12）：读者按停、调强调弱、换节奏、再来一次、跳过，用 `tbc.feedback()` 记录，下一轮以 `feedback(…)` 行交给模型（如 `acts 3 sent, 2 done | stop by reader read @61s`）；玩具自带的压力传感器、按键按 kind `pressure` / `button` 推送。反馈只记录，不自动触发新动作。
 - v0.4 草案：执行器电量与连接状态进块（`actuator(…)` 行），以及 `<bio_act pattern="native" mode="…"/>` 直通设备自带模式（只限用户开启的模式，块里用 `native(…)` 行列出；找不到时跳过）。
+- v0.4 草案：设备在动的那几秒也照实标注——相位行的 `act 12s, mean 62%, 3 acts` 记录本相位驱动了多久多强，`clean(read): … | sec 34/60` 只统计没有驱动的那些秒，基线窗口排除驱动秒；块只给事实，“这算不算读者被写哭了”由用户自己的模型判断（§5）。
 - Intiface Central / buttplug 适配说明见 v0.3 §5.6（v4 协议，服务器不支持时回退 v3）。
 - **设备实测征集**：用 [`tools/device-test.html`](tools/device-test.html) 测你自己的设备（浏览器直连或 Intiface），按 [`docs/device-test-reports-zh.md`](docs/device-test-reports-zh.md) 提 PR 补充结果。
 

@@ -1,5 +1,5 @@
 // TBC v0.3 §5 参考实现：解析回复里的 <bio_act/>，并把抽象振动模式展开成强度帧。
-// v0.4 草案 §8：pattern="native" + mode 直通设备自带模式，只在调用方传入执行器能力（opts.actuators）时接受。
+// v0.4 草案 §9：pattern="native" + mode 直通设备自带模式，只在调用方传入执行器能力（opts.actuators）时接受。
 // 实现可以有自己的写法，但对同样的输入应给出同样的结果（heartlink 的一致性测试会比对）。
 
 // '*' = 任意输出：执行器有什么就用什么（振动、往复、旋转、收缩、抽动……）；不写 output 时就是它
@@ -7,7 +7,7 @@ export const OUTPUTS = ['*', 'Vibrate', 'Rotate', 'Oscillate', 'Constrict', 'Spr
 // §5.9：有风险的输出。output="*"（含不写 output）不会驱动它们，必须点名
 export const RISKY_OUTPUTS = ['Temperature', 'Estim', 'Spray'];
 export const PATTERNS = ['pulse', 'double', 'triple', 'long', 'heartbeat', 'wave'];
-// v0.4 草案 §8：设备自带模式直通。不在 PATTERNS 里（抽象模式表与 v0.3 一致）
+// v0.4 草案 §9：设备自带模式直通。不在 PATTERNS 里（抽象模式表与 v0.3 一致）
 export const NATIVE_PATTERN = 'native';
 export const MAX_PER_REPLY = 3;
 export const DEFAULT_INTENSITY = 0.5;

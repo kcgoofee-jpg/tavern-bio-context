@@ -13,9 +13,11 @@
 - 带定义的派生事实：相位行段 `mean N (±N%)`、`above +N% 时长`、`away 时长`；`history` 段 `read-peak-rel`；读法改用 `noise`，分“起伏 / 显著升高”两档。
 - away 相对 `sent` 的写法 `-m:ss..-m:ss 类型 (相位)` 与类型 `unfocused`。
 - 世界书扫描缺省改为关闭。
-- 执行器电量与连接（§7）：`tbc.push({ kind: 'battery' | 'charging', device: <执行器 id> })` 归到执行器；`tbc.actuatorLink(id, 'ok' | 'reconnecting' | 'lost')`；`tbc.actuators()` 增加 `battery`、`charging`、`batteryAt`、`link`，`tbc.outputState()` 增加 `actuatorStatus`；扩展行 `actuator(<执行器 id>): battery N%[ low] | charging yes|no | link ok|reconnecting|lost`（L0，只在有执行器报告时出现）；`low` 只在电量 ≤ 15% 时写（经验值），不写推断。
-- 设备自带模式直通（§8）：`nativePatterns` 可写成列表（`id`、`name`、`outputs`、`levels`、`stoppable`、`maxDurationMs`、`map`），序号 = 位置；`<bio_act pattern="native" mode="序号|名字"/>`；扩展行 `native(<执行器 id>): 1 波浪 | 3 失控 (unstoppable, 60s, opt-in)`，只列用户开启的模式，`haptics off` 时不出现；档位与频率照常约束；找不到模式时跳过（不退回 `pulse`）；停不下来的模式的护栏写成可检查条目，停止后仍在运行时 `feedback` 备注与事件 `reason` 写 `native-unstoppable`；`outputState()` 增加 `nativeRunning`。
-- 参考实现：`tools/bio-act.mjs` 新增 `NATIVE_PATTERN`、`resolveNative()`，`parseBioActs(text, { actuators })` 解析 `mode`，没传执行器列表时直通动作跳过（`NATIVE_NO_CAPS`）；错误代码 `NATIVE_NO_MODE`、`NATIVE_UNAVAILABLE`、`NATIVE_OFF`、`NATIVE_TARGET_AMBIGUOUS`、`MODE_IGNORED`。`tools/block.mjs` 在 `v="0.4"` 时检查 `actuator` / `native` 行与 `native-unstoppable` 备注（`ACTUATOR_*`、`NATIVE_*`）。Schema：`actuator` 的 `nativePatterns` 列表写法，`bio-act` 的 `pattern: native` 与 `mode`，`feedback` 的 `reason: native-unstoppable`。样例 `blocks/valid/13`、`blocks/invalid/20`、`21`，以及 `bio-act` 与 JSON 样例。
+- 执行器与相位的重叠（§5）：相位行与 `stream` 行新增 `act N s, mean N%, N act(s)[ (Estim)]`（本相位内执行器运行的秒数、时间加权平均强度、动作条数，有风险的输出必须点名）；算的是**生产者发出的动作**，不是设备确认执行的时间；新增扩展行 `clean(gen|read|write): hr … | sec 干净秒/相位时长 [| cov …]`，只用没有驱动的那些秒统计，干净秒不足 `max(10 s, 2 × lag)` 或不足相位时长 30% 时整行省略；基线卫生：会话内算出的基线窗口必须排除驱动秒，不够就按 §3 优先级降级并写 `warn: baseline degraded to …`；读法（非规范）只陈述事实——驱动秒里的心率同时反映设备与剧情、腕式在动作中不可靠——判断留给用户自己的模型，并给出“跨轮比较 `clean`”这一条不具约束力的例子；聊天变量新增 `phases[gen|read|write].act` / `.clean`（Schema 在 `v` 为 `0.4` 时检查），总线不加新方法。
+- 玩具上的传感器输入（§5.6）：`pressure` / `button` 等已有 kind 的 `device` 写**执行器 id**，`unit` 为 `raw`，块里只写带 `+` / `-` 的相对变化、不得换算成物理单位，也不得与 `sensor(…)` 的信号源设备混同、不进相位心率统计。
+- 执行器电量与连接（§8）：`tbc.push({ kind: 'battery' | 'charging', device: <执行器 id> })` 归到执行器；`tbc.actuatorLink(id, 'ok' | 'reconnecting' | 'lost')`；`tbc.actuators()` 增加 `battery`、`charging`、`batteryAt`、`link`，`tbc.outputState()` 增加 `actuatorStatus`；扩展行 `actuator(<执行器 id>): battery N%[ low] | charging yes|no | link ok|reconnecting|lost`（L0，只在有执行器报告时出现）；`low` 只在电量 ≤ 15% 时写（经验值），不写推断。
+- 设备自带模式直通（§9）：`nativePatterns` 可写成列表（`id`、`name`、`outputs`、`levels`、`stoppable`、`maxDurationMs`、`map`），序号 = 位置；`<bio_act pattern="native" mode="序号|名字"/>`；扩展行 `native(<执行器 id>): 1 波浪 | 3 失控 (unstoppable, 60s, opt-in)`，只列用户开启的模式，`haptics off` 时不出现；档位与频率照常约束；找不到模式时跳过（不退回 `pulse`）；停不下来的模式的护栏写成可检查条目，停止后仍在运行时 `feedback` 备注与事件 `reason` 写 `native-unstoppable`；`outputState()` 增加 `nativeRunning`。
+- 参考实现：`tools/bio-act.mjs` 新增 `NATIVE_PATTERN`、`resolveNative()`，`parseBioActs(text, { actuators })` 解析 `mode`，没传执行器列表时直通动作跳过（`NATIVE_NO_CAPS`）；错误代码 `NATIVE_NO_MODE`、`NATIVE_UNAVAILABLE`、`NATIVE_OFF`、`NATIVE_TARGET_AMBIGUOUS`、`MODE_IGNORED`。`tools/block.mjs` 在 `v="0.4"` 时检查 `actuator` / `native` 行与 `native-unstoppable` 备注（`ACTUATOR_*`、`NATIVE_*`），以及 `act` 段、`clean` 行、来自执行器的传感器行（`ACT_*`、`CLEAN_*`、`TOY_SENSOR_*`）。Schema：`actuator` 的 `nativePatterns` 列表写法，`bio-act` 的 `pattern: native` 与 `mode`，`feedback` 的 `reason: native-unstoppable`。样例 `blocks/valid/13`、`14`，`blocks/invalid/20`、`21`、`22`，以及 `bio-act` 与 JSON 样例（`bio-variable.v04-phases`）。
 
 ### Deprecated（草案）
 - `quiet-median`、`p20`：v0.4 起生产者不得输出。
@@ -24,6 +26,7 @@
 ### 待定（未采纳）
 - 负向事件 `dip`、低质量 HRV 标记、基线情境字段、`hr-high` 缺省值的依据。
 - 两档电量设备的写法、低电量门槛的实测依据、自带模式能否调强度、同名模式在 `target="*"` 时的处理。
+- 振动 / 触觉刺激本身对心率的影响幅度（**未核实**）；`clean` 的两个阈值、多执行器同秒的强度取法、`stream` 行要不要也支持 `clean`、将来设备能回报执行状态时是否另加口径。
 
 ## [Unreleased] — 0.3 定稿候选
 

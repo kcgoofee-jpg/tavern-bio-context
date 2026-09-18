@@ -1,0 +1,7 @@
+{"v":"0.4","source":"heartlink","updatedAt":1789600000000,"mode":"character","view":"device-aware","baseline":66,
+ "baselineInfo":{"method":"rest","n":120,"ageSec":480,"noise":3},
+ "last":{"t":1789600000000,"readSec":60,"readPeak":90,"sendBpm":80,"baseline":66,
+   "phases":{
+     "read":{"act":{"sec":12,"mean":62,"n":3,"outputs":["Vibrate"]},
+             "clean":{"sec":34,"phaseSec":60,"first":74,"last":78,"min":72,"max":80,"peak":80,"peakAt":31,"cov":91}},
+     "write":{"act":{"sec":8,"mean":40,"n":1,"outputs":["Vibrate","Estim"]},"clean":null}}}}

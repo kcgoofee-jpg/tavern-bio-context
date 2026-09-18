@@ -157,5 +157,24 @@
       "LINE_SYNTAX"
     ],
     "reader": "ok"
+  },
+  "22-v04-act-clean.txt": {
+    "errors": [
+      "ACT_MEAN_RANGE",
+      "ACT_COUNT_WORD",
+      "ACT_OVER_PHASE",
+      "ACT_EMPTY",
+      "LINE_SYNTAX",
+      "CLEAN_LOW_SHARE",
+      "CLEAN_TOO_SHORT",
+      "CLEAN_PEAK_AT",
+      "CLEAN_PHASE",
+      "CLEAN_PHASE_SEC",
+      "CLEAN_OVER_PHASE",
+      "CLEAN_WITHOUT_ACT",
+      "TOY_SENSOR_ABSOLUTE",
+      "TOY_SENSOR_UNIT"
+    ],
+    "reader": "ok"
   }
 }

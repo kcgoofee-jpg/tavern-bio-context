@@ -69,7 +69,9 @@ export const EXTENSION_LINES = {
   feedback: { level: 'L0', since: '0.3' },
   // v0.4 草案 §1：流式显示段
   stream: { level: 'L1', since: '0.4' },
-  // v0.4 草案 §7：执行器的电量与连接；§8：用户开启了的设备自带模式
+  // v0.4 草案 §5.2：只统计没有执行器驱动的那些秒
+  clean: { level: 'L1', since: '0.4' },
+  // v0.4 草案 §8：执行器的电量与连接；§9：用户开启了的设备自带模式
   actuator: { level: 'L0', since: '0.4', named: true, perActuator: true },
   native: { level: 'L0', since: '0.4', named: true, perActuator: true },
 };
@@ -105,6 +107,14 @@ const HR_NA_RE = /^(?:hr )?n\/a(?: \([^()]*\))?$/;
 const LINE_RE = /^([a-z][a-z0-9_-]*)(?:\(([^\x00-\x1f\x7f()<>]+)\))?( \[L2\])?: ([^\x00-\x1f\x7f<>]+)$/;
 const HEADER_RE = /^<bio_context((?: [a-z][a-z0-9_-]*="[^"<>\x00-\x1f\x7f]*")+)>$/;
 
+// v0.4 草案 §5：执行器与相位的重叠
+export const RISKY_OUTPUTS = ['Temperature', 'Estim', 'Spray'];   // v0.3 §5.9-6，act 段里必须点名
+export const CLEAN_PHASES = ['gen', 'read', 'write'];
+export const CLEAN_MIN_SEC = 10;        // 干净秒不少于 max(10, 2 × lag)（经验值）
+export const CLEAN_MIN_SHARE = 30;      // 干净秒不少于相位时长的 30%（经验值）
+// 来自执行器的传感器行不得写的物理单位（单位不统一，只能写相对变化）
+const TOY_SENSOR_UNIT_RE = /(?:\d\s?(?:kpa|bpm|mmhg|ms|g)\b|°c|℃)/i;
+
 const PHASE_MAIN = {
   gen: new RegExp(`^${DUR}(?: \\([^()]*\\))?$`),
   read: new RegExp(`^${DUR}$`),
@@ -121,11 +131,16 @@ const PHASE_SEGS = [
   { key: 'above', since: '0.4', re: new RegExp(`^above \\+\\d+% ${DUR}$`) },
   { key: 'away', since: '0.4', re: new RegExp(`^away ${DUR}$`) },
   { key: 'tail-max', since: '0.4', re: /^tail-max (\d+) @\+(\d+)s$/ },
+  // v0.4 草案 §5.1：本相位内执行器运行的秒数、强度与动作条数（算的是生产者发出的动作）
+  { key: 'act', since: '0.4', re: new RegExp(`^act (${DUR}), mean (\\d{1,3})%, (\\d{1,2}) (acts?)(?: \\((${RISKY_OUTPUTS.join('|')})(?:\\/(?:${RISKY_OUTPUTS.join('|')}))*\\))?$`) },
 ];
 const STREAM_SEGS = [
   { key: 'pos', since: '0.4', re: /^pos ~(\d+)\/(\d+) chars, para (\d+)\/(\d+)$/ },
   ...PHASE_SEGS.filter((s) => s.key !== 'away' && s.key !== 'tail-max' && s.key !== 'off-wrist'),
 ];
+// v0.4 草案 §5.2：clean 行的 sec 段与可用段（只在干净秒上算）
+const CLEAN_SEC_RE = /^sec (\d+)\/(\d+)$/;
+const CLEAN_SEGS = PHASE_SEGS.filter((s) => ['cov', 'rr-loss', 'hrv', 'mean', 'above'].includes(s.key));
 const BASELINE_SEGS = [
   { key: 'age', since: '0.4', re: /^age \d+[smhd]$/ },
   { key: 'noise', since: '0.4', re: /^noise ±\d+$/ },
@@ -151,10 +166,10 @@ const FEEDBACK_REASON = '(?:disconnected|deadline|heat-limit|rate-limit|stop-fai
 const FEEDBACK_REF_RE = new RegExp(`^(?:${FEEDBACK_REASON}(?:, |$))?(?:reply -\\d+(?:, act \\d+)?(?:, \\d+(?:\\.\\d)?s in)?)?$`);
 const FEEDBACK_REF_LEGACY_RE = /^act \d+(?:, \d+(?:\.\d)?s in)?$/;
 const FEEDBACK_MAX_EVENTS = 8;
-// v0.4 草案 §8.6：停止指令发出后自带模式仍在运行
+// v0.4 草案 §9.6：停止指令发出后自带模式仍在运行
 const FEEDBACK_REF_V04_RE = new RegExp(`^native-unstoppable(?:, reply -\\d+(?:, act \\d+)?(?:, \\d+(?:\\.\\d)?s in)?)?$`);
 
-// v0.4 草案 §7、§8
+// v0.4 草案 §8、§9
 export const ACTUATOR_LOW_MAX = 15;          // low 只在电量 ≤ 15% 时可以写（经验值）
 export const ACTUATOR_MAX_LINES = 4;
 export const NATIVE_MAX_MODES = 8;
@@ -389,7 +404,57 @@ function checkPhase(ctx, l, sparse, lagSec) {
   }
   if (found['tail-max'] && hr.peak != null && Number(found['tail-max'][1]) <= hr.peak) ctx.err(l.line, 'TAILMAX_NOT_HIGHER', `tail-max 只在高于本相位 peak 时输出（${l.name} 行）`);
   if (found['tail-max'] && lagSec != null && Number(found['tail-max'][2]) > lagSec) ctx.err(l.line, 'TAILMAX_WINDOW', `tail-max 的时刻不得晚于相位结束后 lag 秒（${l.name} 行）`);
+  hr.dur = dur;
+  hr.act = checkAct(ctx, l, found.act, dur);
   return hr;
+}
+
+// v0.4 草案 §5.1：act 段（秒数、平均强度、动作条数、点名的风险输出）
+function checkAct(ctx, l, m, dur) {
+  if (!m) return null;
+  const sec = durSec(m[1]);
+  const mean = Number(m[2]);
+  const n = Number(m[3]);
+  const word = m[4];
+  if (!sec || !n) ctx.err(l.line, 'ACT_EMPTY', `没有执行器运行时整段省略，不写 act 0s / 0 acts（${l.name} 行）`);
+  if (mean < 1 || mean > 100) ctx.err(l.line, 'ACT_MEAN_RANGE', `act 的 mean 是 1–100 的整数百分比（强度 0 就是停止）：${m[0]}`);
+  if ((n === 1) !== (word === 'act')) ctx.err(l.line, 'ACT_COUNT_WORD', `一条动作写 "1 act"，多条写 "N acts"：${m[0]}`);
+  if (dur != null && sec > dur) ctx.err(l.line, 'ACT_OVER_PHASE', `act ${sec}s 大于相位时长 ${dur}s（${l.name} 行）`);
+  return { sec, mean, n, risky: m[5] ? m[0].replace(/^.*\((.*)\)$/, '$1').split('/') : [] };
+}
+
+// v0.4 草案 §5.2：clean 行（只统计没有执行器驱动的那些秒）
+function checkClean(ctx, l, lagSec) {
+  if (!CLEAN_PHASES.includes(l.meta)) { ctx.err(l.line, 'CLEAN_PHASE', `clean 行括号里必须是 ${CLEAN_PHASES.join(' / ')}：${l.raw}`); return null; }
+  const pieces = l.body.split(' | ');
+  const hr = parseHr(ctx, l, pieces[0]);
+  if (!hr) return null;
+  if (hr.na) { ctx.err(l.line, 'LINE_SYNTAX', `clean 行必须有心率统计，没有就整行省略：${l.raw}`); return null; }
+  const sm = CLEAN_SEC_RE.exec(pieces[1] ?? '');
+  if (!sm) { ctx.err(l.line, 'LINE_SYNTAX', `clean 行的心率统计之后必须是 sec 干净秒/相位时长：${l.raw}`); return null; }
+  checkSegs(ctx, l, pieces.slice(2), CLEAN_SEGS);
+  const clean = Number(sm[1]);
+  const total = Number(sm[2]);
+  const minClean = Math.max(CLEAN_MIN_SEC, lagSec != null ? 2 * lagSec : 0);
+  if (clean > total) ctx.err(l.line, 'CLEAN_OVER_PHASE', `clean 的干净秒 ${clean}s 大于相位时长 ${total}s`);
+  if (clean < minClean) ctx.err(l.line, 'CLEAN_TOO_SHORT', `干净秒 ${clean}s 少于 max(10 s, 2 × lag) = ${minClean}s 时整行省略`);
+  if (clean * 100 < total * CLEAN_MIN_SHARE) ctx.err(l.line, 'CLEAN_LOW_SHARE', `干净秒 ${clean}s 不足相位时长 ${total}s 的 ${CLEAN_MIN_SHARE}% 时整行省略`);
+  if (hr.peak != null) {
+    if (hr.at > total) ctx.err(l.line, 'CLEAN_PEAK_AT', `clean 的 peak @${hr.at}s 超出相位时长 ${total}s（时刻相对相位开始）`);
+    if (lagSec != null) {
+      if (hr.at < lagSec && !hr.carryover) ctx.err(l.line, 'CARRYOVER_MISSING', `peak @${hr.at}s 早于 lag ${lagSec}s，必须写 carryover（clean 行）`);
+      if (hr.at >= lagSec && hr.carryover) ctx.err(l.line, 'CARRYOVER_WRONG', `peak @${hr.at}s 不早于 lag ${lagSec}s，不得写 carryover（clean 行）`);
+    }
+  }
+  return { phase: l.meta, clean, total, l };
+}
+
+// v0.4 草案 §5.6：来自执行器的传感器行只写相对变化，不写物理单位
+function checkToySensor(ctx, l) {
+  if (l.name === 'button') return;   // 按键次数不是测量值（v0.3 §2.1）
+  const stripped = l.body.replace(/@\d+(?:\.\d)?s/g, '').replace(/\d+:\d{2}/g, '');
+  if (/(?<![+\-\d.])\d/.test(stripped)) ctx.err(l.line, 'TOY_SENSOR_ABSOLUTE', `来自执行器的 ${l.name} 行只写相对变化，每个数值必须带 + 或 -：${l.raw}`);
+  if (TOY_SENSOR_UNIT_RE.test(l.body)) ctx.err(l.line, 'TOY_SENSOR_UNIT', `执行器上的传感器单位不统一（unit: 'raw'），不得换算成物理单位：${l.raw}`);
 }
 
 function durSec(text) {
@@ -530,6 +595,7 @@ function checkStream(ctx, l, sparse, lagSec) {
   const hr = parseHr(ctx, { ...l, name: 'stream' }, pieces[2].replace(/ carryover$/, ''));
   if (!hr) return;
   const found = checkSegs(ctx, l, pieces.slice(3), STREAM_SEGS);
+  checkAct(ctx, l, found.act, durSec(pieces[1].slice(5)));   // §5.1：统计范围是 body 区间
   if (hr.peak != null && sparse) ctx.err(l.line, 'SPARSE_FIELD', '稀疏来源不得输出 peak（stream 行）');
   if (found.pos) {
     const [n, total, para, paras] = found.pos.slice(1).map(Number);
@@ -539,7 +605,7 @@ function checkStream(ctx, l, sparse, lagSec) {
   }
 }
 
-// v0.4 草案 §7.3
+// v0.4 草案 §8.3
 function checkActuator(ctx, l) {
   const found = checkSegs(ctx, l, l.body.split(' | '), ACTUATOR_SEGS);
   const keys = Object.keys(found);
@@ -554,7 +620,7 @@ function checkActuator(ctx, l) {
   }
 }
 
-// v0.4 草案 §8.3
+// v0.4 草案 §9.3
 function checkNative(ctx, l) {
   const segs = l.body.split(' | ');
   if (segs.length > NATIVE_MAX_MODES) ctx.err(l.line, 'NATIVE_TOO_MANY', `native 行最多 ${NATIVE_MAX_MODES} 个模式`);
@@ -575,6 +641,9 @@ function checkLines(ctx, lines) {
   const lagSec = at('0.4') && /^\d+s$/.test(attrs.lag || '') ? parseInt(attrs.lag, 10) : null;
   const first = {};
   const info = {};
+  // v0.4 草案 §5.6：块里出现过的执行器 id（actuator / native 行），用来认出玩具上的传感器行
+  const actuatorIds = new Set(lines.filter((l) => (l.name === 'actuator' || l.name === 'native') && l.meta).map((l) => l.meta.split(', ')[0]));
+  const cleans = [];
   for (const l of lines) {
     const c = l.cls;
     if (!(l.name in first)) first[l.name] = l;
@@ -639,6 +708,7 @@ function checkLines(ctx, lines) {
         }
         if (c.kind === 'signal') {
           if (BUS_ONLY_KINDS.includes(l.name)) err(l.line, 'KIND_NOT_IN_BLOCK', `${l.name} 只在总线上流转，不进块`);
+          if (at('0.4') && actuatorIds.has(l.meta.split(', ')[0])) checkToySensor(ctx, l);
           break;
         }
         const reg = c.reg;
@@ -647,6 +717,11 @@ function checkLines(ctx, lines) {
         if (reg.date) checkLineDate(ctx, l, reg.date);
         if (l.name === 'feedback') checkFeedback(ctx, l);
         if (l.name === 'stream') { info.stream = l; checkStream(ctx, l, sparse, lagSec); }
+        if (l.name === 'clean') {
+          if (cleans.some((c) => c.phase === l.meta)) err(l.line, 'LINE_DUP', `clean(${l.meta}) 行只能出现一次`);
+          const c = checkClean(ctx, l, lagSec);
+          if (c) cleans.push(c);
+        }
         if (reg.perActuator) {
           if (!IDENT_RE.test(l.meta)) err(l.line, 'ACTUATOR_NAME', `${l.name} 行括号里必须是执行器 id（v0.3 §4.4 的标识规则）：${l.meta}`);
           const seen = (info[l.name] ??= new Set());
@@ -684,6 +759,14 @@ function checkLines(ctx, lines) {
       if (!info.read || info.read.peak == null) err(info.readPos.line, 'READPOS_WITHOUT_PEAK', 'read 行没有 peak 时不得输出 read-pos');
       if (sparse) err(info.readPos.line, 'SPARSE_FIELD', '稀疏来源不得输出 read-pos');
     }
+  }
+  // v0.4 草案 §5.2：clean 行与它那条相位行的关系
+  for (const c of cleans) {
+    const phase = info[c.phase];
+    if (!first[c.phase]) { err(c.l.line, 'CLEAN_WITHOUT_ACT', `没有 ${c.phase} 行时不得输出 clean(${c.phase})`); continue; }
+    if (!phase || !phase.act) { err(c.l.line, 'CLEAN_WITHOUT_ACT', `只有 ${c.phase} 行有 act 段时才可以输出 clean(${c.phase})`); continue; }
+    if (phase.dur != null && c.total !== phase.dur) err(c.l.line, 'CLEAN_PHASE_SEC', `clean 的 sec 分母必须等于相位时长（${c.phase} 行是 ${phase.dur}s，写了 ${c.total}s）`);
+    if (phase.dur != null && c.clean > phase.dur - phase.act.sec) err(c.l.line, 'CLEAN_OVER_PHASE', `干净秒 ${c.clean}s 大于相位时长减去 act ${phase.act.sec}s`);
   }
   if (at('0.4') && info.nativeLine && first.haptics && first.haptics.body === 'off') err(info.nativeLine.line, 'NATIVE_HAPTICS_OFF', 'haptics 行是 off 时不得输出 native 行');
   if (at('0.4') && attrs.stream === 'yes' && info.readPos) err(info.readPos.line, 'READPOS_FORBIDDEN', 'stream="yes" 时不得输出 read-pos（位置看 stream 行的 pos）');

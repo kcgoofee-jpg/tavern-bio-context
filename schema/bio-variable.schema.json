@@ -239,6 +239,149 @@
         }
       },
       "additionalProperties": false
+    },
+    "phases": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "v0.4 草案 §5.5：每个相位的执行器重叠（act）与干净子统计（clean）；生产者只记录，不下结论",
+      "propertyNames": {
+        "enum": [
+          "gen",
+          "read",
+          "write"
+        ]
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "act": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "本相位里生产者发出的动作覆盖的秒数、强度与条数（§5.1）；没有动作时省略或为 null",
+            "required": [
+              "sec",
+              "mean",
+              "n"
+            ],
+            "properties": {
+              "sec": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "mean": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100,
+                "description": "发出的强度 × 100 取整（0 就是停止，所以最小为 1）"
+              },
+              "n": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "outputs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "这些秒里驱动过的输出类型（含有风险的 Temperature / Estim / Spray）"
+              }
+            },
+            "additionalProperties": false
+          },
+          "clean": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "只用没有驱动的那些秒算出的统计（§5.2）；不满足最短与占比要求时省略或为 null",
+            "required": [
+              "sec",
+              "phaseSec"
+            ],
+            "properties": {
+              "sec": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "phaseSec": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "first": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "last": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "min": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "max": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "peak": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "peakAt": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "description": "相对本相位开始的秒数"
+              },
+              "cov": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0,
+                "maximum": 100
+              },
+              "hrv": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    "turnV04": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/turn"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "phases": {
+              "$ref": "#/$defs/phases"
+            }
+          }
+        }
+      ]
     }
   },
   "allOf": [
@@ -298,6 +441,23 @@
         "properties": {
           "baselineInfo": {
             "$ref": "#/$defs/baselineInfo"
+          },
+          "last": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/$defs/turnV04"
+              }
+            ]
+          },
+          "turns": {
+            "type": "array",
+            "maxItems": 20,
+            "items": {
+              "$ref": "#/$defs/turnV04"
+            }
           }
         }
       }

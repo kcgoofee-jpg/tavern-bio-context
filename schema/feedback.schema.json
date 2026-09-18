@@ -81,7 +81,7 @@
         "maybe-running",
         null
       ],
-      "description": "native-unstoppable：v0.4 草案 §8.6，停止指令发出后自带模式仍在运行，任何 from 都可以用"
+      "description": "native-unstoppable：v0.4 草案 §9.6，停止指令发出后自带模式仍在运行，任何 from 都可以用"
     }
   },
   "allOf": [

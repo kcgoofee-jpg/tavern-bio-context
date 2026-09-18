@@ -35,7 +35,7 @@
         "native"
       ],
       "default": "pulse",
-      "description": "native：设备自带模式直通，必须同时写 mode（v0.4 草案 §8.4）"
+      "description": "native：设备自带模式直通，必须同时写 mode（v0.4 草案 §9.4）"
     },
     "intensity": {
       "type": "number",
@@ -56,7 +56,7 @@
         "string",
         "integer"
       ],
-      "description": "v0.4 草案 §8.4：自带模式的序号（1–99）或名字；只用于 pattern 为 native",
+      "description": "v0.4 草案 §9.4：自带模式的序号（1–99）或名字；只用于 pattern 为 native",
       "pattern": "^(?:[1-9][0-9]?|[^\\s|()<>]{1,8})$",
       "minimum": 1,
       "maximum": 99

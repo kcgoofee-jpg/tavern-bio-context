@@ -7,7 +7,7 @@ import { join, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
-import { parseBlock, compareVersions, effectiveView } from './block.mjs';
+import { parseBlock, compareVersions, effectiveView, CLEAN_MIN_SEC, CLEAN_MIN_SHARE, CLEAN_PHASES } from './block.mjs';
 import * as sanitize from './sanitize.mjs';
 import { parseBioActs, patternFrames, PATTERNS, PROFILES, resolveSettings, liftIntensity, hideBioActs, NATIVE_PATTERN } from './bio-act.mjs';
 
@@ -88,6 +88,20 @@ for (const f of readdirSync(join(bdir, 'invalid')).filter((x) => x.endsWith('.tx
       return r.ok && r.warnings.filter((w) => w.code === 'LINE_UNKNOWN').length === 3;
     })()],
     ['视图：旧 mode 换算', effectiveView({ mode: 'author' }) === 'backstage' && effectiveView({ mode: 'character' }) === 'in-story'],
+    ['v0.3 块里的 act 段与 clean 行只给未知段 / 未知行警告', (() => {
+      const r = parseBlock(readFileSync(join(ROOT, 'fixtures/blocks/valid/14-v04-act-clean.txt'), 'utf8')
+        .replace('v="0.4"', 'v="0.3"').replace(/ stream="no" lag="4s"/, '')
+        .replace(/ \| age 8m \| noise ±3/, '').replace(/ \| read-peak-rel [^\n]*/m, ''));
+      const segs = r.warnings.filter((w) => w.code === 'SEG_UNKNOWN' && /act \d/.test(w.message));
+      const lines = r.warnings.filter((w) => w.code === 'LINE_UNKNOWN' && /clean|actuator/.test(w.message));
+      return r.ok && segs.length === 2 && lines.length === 2;
+    })()],
+    ['v0.4 stream 行的 act 段按 body 区间检查（§5.1）', (() => {
+      const r = parseBlock(readFileSync(join(ROOT, 'fixtures/blocks/valid/12-v04-stream.txt'), 'utf8')
+        .replace('| cov 95%\nnote:', '| cov 95% | act 60s, mean 50%, 2 acts\nnote:'));
+      return r.errors.some((e) => e.code === 'ACT_OVER_PHASE');
+    })()],
+    ['v0.4 clean 行的阈值是可配置的经验值', CLEAN_MIN_SEC === 10 && CLEAN_MIN_SHARE === 30 && CLEAN_PHASES.join() === 'gen,read,write'],
   ];
   for (const [name, ok] of cases) ok ? pass(`block/${name}`) : fail(`block/${name}`);
 }
